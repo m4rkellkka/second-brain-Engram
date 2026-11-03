@@ -1,13 +1,14 @@
 "use client";
 
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { EngramMark } from "./engram-mark";
 import { NAV_ITEMS, isActive } from "./nav-items";
 
-/** Desktop navigation (md and up). */
-export function Sidebar() {
+/** Desktop navigation (md and up). `footer` is rendered at the bottom. */
+export function Sidebar({ footer }: { footer?: ReactNode }) {
   const pathname = usePathname();
 
   return (
@@ -41,6 +42,8 @@ export function Sidebar() {
           );
         })}
       </nav>
+
+      {footer && <div className="mt-auto">{footer}</div>}
     </aside>
   );
 }
