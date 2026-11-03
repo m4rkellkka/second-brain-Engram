@@ -15,7 +15,7 @@
     "db:status": "supabase status",
     "db:reset": "supabase db reset",
     "db:push": "supabase db push --remote",
-    "db:types": "supabase gen types typescript --local --schema public > src/server/db/database.types.ts && prettier --write src/server/db/database.types.ts",
+    "db:types": "supabase gen types typescript --local --schema public > src/server/db/database.types.ts && prettier --write --ignore-path .gitignore src/server/db/database.types.ts",
     "test": "vitest run"
   },
   "dependencies": {
