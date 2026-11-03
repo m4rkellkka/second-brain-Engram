@@ -3,3 +3,4 @@ pnpm-lock.yaml
 supabase/.temp
 CLAUDE.md
 AGENTS.md
+src/server/db/database.types.ts
