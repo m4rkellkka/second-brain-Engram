@@ -1,9 +1,11 @@
 name: CI
 
+# Runs only on demo and dev, and only when the pushed head commit is a
+# `chore` commit (e.g. `chore(release): v0.3.0`). Never runs on main.
+# Every other commit is checked locally before it is made.
 on:
   push:
-    branches: [demo, dev, main]
-  pull_request:
+    branches: [demo, dev]
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -11,6 +13,7 @@ concurrency:
 
 jobs:
   check:
+    if: startsWith(github.event.head_commit.message, 'chore')
     runs-on: ubuntu-latest
     env:
       # Placeholder values so env validation passes; nothing connects to them in CI.
@@ -32,6 +35,7 @@ jobs:
 
   db-test:
     # RLS tests against a throwaway local Supabase stack (migrations + seed).
+    if: startsWith(github.event.head_commit.message, 'chore')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
