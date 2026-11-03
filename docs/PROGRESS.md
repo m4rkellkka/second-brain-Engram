@@ -1,6 +1,6 @@
 # Progress
 
-**Current version:** 0.2.1 · **Current phase:** Phase 2 — Text capture, Inbox & PWA · status: **not started**
+**Current version:** 0.2.1 · **Current phase:** Phase 2 — Text capture, Inbox & PWA · status: **in progress**
 
 | Phase | Name                      | Status        |
 | ----- | ------------------------- | ------------- |
@@ -52,6 +52,12 @@
 
 - [ ] Is "Engram" free on GitHub, npm and a domain?
 - [ ] Default LLM provider for sorting and Ask?
+
+## TODO (known gaps)
+
+- [ ] **Service worker** (spec: PWA = manifest + service worker). Skipped in Phase 2: iOS installs the PWA without it and offline sync is out of the MVP. Add it with a cache strategy that never serves another session's data.
+- [ ] **Inline "+ New project" in the Inbox project picker** is a stopgap from Phase 2. Replace it with proper project management in Phase 5 (create, rename, colors, archive).
+- [ ] **Realtime Inbox.** Phase 2 refreshes on tab/app focus only. Consider Supabase Realtime so new entries appear without switching back.
 
 ## Ideas for later
 
