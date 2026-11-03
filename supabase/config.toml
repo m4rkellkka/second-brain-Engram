@@ -174,7 +174,10 @@ enable_refresh_token_rotation = true
 # Requires enable_refresh_token_rotation = true.
 refresh_token_reuse_interval = 10
 # Allow/disallow new user signups to your project. Existing users can still sign in.
-enable_signup = true
+# Off: Engram is a one-person instance. The account is created once in the
+# Supabase dashboard (cloud) or by seed.sql (local), so nobody can register
+# through the public Auth API with the publishable key.
+enable_signup = false
 # Allow/disallow anonymous sign-ins to your project.
 enable_anonymous_sign_ins = false
 # Allow/disallow testing manual linking of accounts
@@ -244,16 +247,6 @@ otp_expiry = 3600
 # pass = "env(SENDGRID_API_KEY)"
 # admin_email = "admin@email.com"
 # sender_name = "Admin"
-
-# Magic link emails carry a token_hash so the link works on any device
-# (no PKCE code verifier needed). New users get the "confirmation" email.
-[auth.email.template.magic_link]
-subject = "Sign in to Engram"
-content_path = "./supabase/templates/magic-link.html"
-
-[auth.email.template.confirmation]
-subject = "Sign in to Engram"
-content_path = "./supabase/templates/magic-link.html"
 
 # Uncomment to customize email template
 # [auth.email.template.invite]
@@ -437,27 +430,10 @@ project_id = "fsnmuvzztrelevofjkyv"
 
 [remotes.production.auth]
 site_url = "http://localhost:3000"
-# localhost for the laptop; private Wi-Fi ranges for the iPhone while the app
-# runs on the laptop's dev server (`pnpm dev -H <LAN IP>`).
-additional_redirect_urls = [
-  "http://localhost:3000/**",
-  "http://192.168.*.*:3000/**",
-  "http://172.16.*.*:3000/**",
-  "http://10.*.*.*:3000/**",
-]
+# Password sign-in needs no email redirects; keep the list minimal.
+additional_redirect_urls = ["http://localhost:3000/**"]
 
 # Keep the cloud defaults for everything else.
-# Free tier projects on the built-in email provider cannot change email
-# templates, so the cloud keeps Supabase's default subjects and bodies
-# (PKCE links: open them on the device that requested them).
-[remotes.production.auth.email.template.magic_link]
-subject = "Your sign-in link"
-content_path = ""
-
-[remotes.production.auth.email.template.confirmation]
-subject = "Confirm your email address"
-content_path = ""
-
 [remotes.production.auth.email]
 enable_confirmations = true
 max_frequency = "1m0s"
