@@ -59,6 +59,7 @@
 | 2026-11-03 | Seed (local only): dev user `dev@engram.local`, projects Tamam and Engram               | Realistic projects for development; cloud gets no seed                                |
 | 2026-11-03 | RLS tests run in CI against a throwaway local stack                                     | Data isolation is checked on every push                                               |
 | 2026-11-03 | Next dev indicator disabled                                                             | It covers the mobile header and tab bar in every corner                               |
+| 2026-11-04 | CI runs only for `chore` head commits on `demo`/`dev`, never on `main`                  | Mikhail's call: fewer CI runs; every commit is checked locally before it is made      |
 
 ## Open questions
 

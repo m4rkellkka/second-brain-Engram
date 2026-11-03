@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- CI runs only when the pushed head commit is a `chore` commit on `demo` or `dev`, and never on `main` or pull requests.
+
 ## [0.2.1] - 2026-11-03
 
 ### Changed
