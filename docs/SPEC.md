@@ -20,13 +20,13 @@ Engram is an open-source, self-hosted second brain: you dump thoughts by voice o
 
 The MVP is five screens in one installable PWA, for a single user per self-hosted instance.
 
-| Screen | What it does | Key interactions |
-| --- | --- | --- |
-| Capture | Instant text or voice input; shows how the last capture was sorted | Tap to talk, type, attach link |
-| Inbox | Feed of recent entries, already typed and filed | Filter by type, fix project, resolve "not sure" items |
-| Projects | Project page with a live context the AI keeps updated | Edit context, tick tasks, rename, archive |
-| Ask | Chat with your own notes, answers cite the source entries | Ask by text or voice, open a cited entry |
-| Brain | 3D graph of all entries, clustered by project | Rotate, hover, click a node to open its project |
+| Screen   | What it does                                                       | Key interactions                                      |
+| -------- | ------------------------------------------------------------------ | ----------------------------------------------------- |
+| Capture  | Instant text or voice input; shows how the last capture was sorted | Tap to talk, type, attach link                        |
+| Inbox    | Feed of recent entries, already typed and filed                    | Filter by type, fix project, resolve "not sure" items |
+| Projects | Project page with a live context the AI keeps updated              | Edit context, tick tasks, rename, archive             |
+| Ask      | Chat with your own notes, answers cite the source entries          | Ask by text or voice, open a cited entry              |
+| Brain    | 3D graph of all entries, clustered by project                      | Rotate, hover, click a node to open its project       |
 
 **Out of scope for the MVP:** teams and multi-user hosting, native iOS/Android apps, the MCP server, reminders and push notifications, a "Today" screen, calendar/email integrations, iOS share-sheet capture, full offline sync. These are listed under Post-MVP.
 
@@ -61,18 +61,18 @@ flowchart TB
 
 The browser talks only to Next.js (plus Supabase Auth for sign-in); API keys and every model call stay on the server.
 
-| Layer | Choice | Why |
-| --- | --- | --- |
-| App | Next.js (App Router), TypeScript strict | One codebase for UI and server logic; server actions keep API keys off the client |
-| UI | Tailwind CSS + shadcn/ui, Geist font | Fast to build, easy to theme to the mockups |
-| PWA | Web app manifest + service worker | Installs to the iPhone home screen, no App Store |
-| Data | Supabase Postgres + pgvector | Relational data and vector search in one database |
-| Auth | Supabase Auth (magic link) | No passwords, works on phone and desktop |
-| Files | Supabase Storage (private bucket) | Voice recordings |
-| AI | Vercel AI SDK | One interface for Anthropic, OpenAI or local models; structured output with zod |
-| Background work | Next.js `after()` + Vercel Cron sweep | Process captures after the response; retry anything stuck |
-| 3D graph | react-three-fiber or 3d-force-graph (decided in Phase 7) | WebGL rendering for thousands of nodes |
-| Validation | zod | Env vars, server action inputs, LLM output |
+| Layer           | Choice                                                   | Why                                                                               |
+| --------------- | -------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| App             | Next.js (App Router), TypeScript strict                  | One codebase for UI and server logic; server actions keep API keys off the client |
+| UI              | Tailwind CSS + shadcn/ui, Geist font                     | Fast to build, easy to theme to the mockups                                       |
+| PWA             | Web app manifest + service worker                        | Installs to the iPhone home screen, no App Store                                  |
+| Data            | Supabase Postgres + pgvector                             | Relational data and vector search in one database                                 |
+| Auth            | Supabase Auth (magic link)                               | No passwords, works on phone and desktop                                          |
+| Files           | Supabase Storage (private bucket)                        | Voice recordings                                                                  |
+| AI              | Vercel AI SDK                                            | One interface for Anthropic, OpenAI or local models; structured output with zod   |
+| Background work | Next.js `after()` + Vercel Cron sweep                    | Process captures after the response; retry anything stuck                         |
+| 3D graph        | react-three-fiber or 3d-force-graph (decided in Phase 7) | WebGL rendering for thousands of nodes                                            |
+| Validation      | zod                                                      | Env vars, server action inputs, LLM output                                        |
 
 **Deployment model.** Each user runs their own instance: their own Supabase project and Vercel deployment, with API keys in env vars. This avoids storing other people's keys and keeps the open-source story simple. A hosted multi-user version is a later decision.
 
@@ -164,15 +164,19 @@ Structured output for step 3:
 
 ```ts
 const SortedCapture = z.object({
-  entries: z.array(z.object({
-    kind: z.enum(['idea', 'task', 'note', 'link']),
-    content: z.string(),               // cleaned, in the user's language
-    projectSlug: z.string().nullable(),
-    newProjectName: z.string().nullable(),
-    dueAt: z.string().datetime().nullable(),
-    url: z.string().url().nullable(),
-    confidence: z.number().min(0).max(1),
-  })).min(1),
+  entries: z
+    .array(
+      z.object({
+        kind: z.enum(["idea", "task", "note", "link"]),
+        content: z.string(), // cleaned, in the user's language
+        projectSlug: z.string().nullable(),
+        newProjectName: z.string().nullable(),
+        dueAt: z.string().datetime().nullable(),
+        url: z.string().url().nullable(),
+        confidence: z.number().min(0).max(1),
+      }),
+    )
+    .min(1),
 });
 ```
 
@@ -208,7 +212,7 @@ Goal: an empty but real app shell that matches the design.
 Done when:
 
 - [ ] `pnpm dev` runs and every route renders in the new shell on desktop and phone width
-- [ ] CI is green on the first PR
+- [ ] CI is green on push to `demo`
 
 ### Phase 1 — Auth & data model
 
@@ -336,14 +340,14 @@ The repo is public from day one, MIT-licensed, with the README growing phase by 
 
 The biggest risk is not technical: it is the project growing faster than it gets used, which the phase gates exist to prevent.
 
-| Risk | Mitigation |
-| --- | --- |
-| Scope creep, the app never gets used | One phase at a time; a phase starts only after the previous one is in daily use |
-| Wrong sorting erodes trust | Confidence threshold, "not sure" cards, one-tap correction; corrections can later become few-shot examples |
-| LLM cost per capture | Small model for sorting, usage logged from Phase 3, batching if needed |
-| iOS PWA limits | Test on a real iPhone each phase; mp4/aac audio; no share target on iOS, so an iOS Shortcut later |
-| Embedding model lock-in | Model fixed per instance; re-embed script ships with Phase 6 |
-| 3D graph performance on phones | Lighter mobile mode decided in Phase 7 |
+| Risk                                 | Mitigation                                                                                                 |
+| ------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
+| Scope creep, the app never gets used | One phase at a time; a phase starts only after the previous one is in daily use                            |
+| Wrong sorting erodes trust           | Confidence threshold, "not sure" cards, one-tap correction; corrections can later become few-shot examples |
+| LLM cost per capture                 | Small model for sorting, usage logged from Phase 3, batching if needed                                     |
+| iOS PWA limits                       | Test on a real iPhone each phase; mp4/aac audio; no share target on iOS, so an iOS Shortcut later          |
+| Embedding model lock-in              | Model fixed per instance; re-embed script ships with Phase 6                                               |
+| 3D graph performance on phones       | Lighter mobile mode decided in Phase 7                                                                     |
 
 **Open questions**
 
