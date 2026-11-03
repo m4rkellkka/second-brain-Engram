@@ -59,7 +59,7 @@ flowchart TB
   PIPE -- prompts --> AI
 ```
 
-The browser talks only to Next.js (plus Supabase Auth for sign-in); API keys and every model call stay on the server.
+The browser talks only to Next.js (sign-in also goes through a Server Action); API keys and every model call stay on the server.
 
 | Layer           | Choice                                                   | Why                                                                               |
 | --------------- | -------------------------------------------------------- | --------------------------------------------------------------------------------- |
@@ -67,7 +67,7 @@ The browser talks only to Next.js (plus Supabase Auth for sign-in); API keys and
 | UI              | Tailwind CSS + shadcn/ui, Geist font                     | Fast to build, easy to theme to the mockups                                       |
 | PWA             | Web app manifest + service worker                        | Installs to the iPhone home screen, no App Store                                  |
 | Data            | Supabase Postgres + pgvector                             | Relational data and vector search in one database                                 |
-| Auth            | Supabase Auth (magic link)                               | No passwords, works on phone and desktop                                          |
+| Auth            | Supabase Auth (email + password, sign-up disabled)       | No email round-trips, works in the installed iOS PWA and on every device          |
 | Files           | Supabase Storage (private bucket)                        | Voice recordings                                                                  |
 | AI              | Vercel AI SDK                                            | One interface for Anthropic, OpenAI or local models; structured output with zod   |
 | Background work | Next.js `after()` + Vercel Cron sweep                    | Process captures after the response; retry anything stuck                         |
@@ -148,7 +148,7 @@ create table entry_links (
 
 **Same-owner references.** RLS only checks a row's own `user_id`, so plain foreign keys would let a user point an entry or link at someone else's row by its id. Every cross-table reference is therefore a composite foreign key on `(id, user_id)` (`entries → projects`, `entries → captures`, `entry_links → entries`), backed by `unique (id, user_id)` on the parent and a matching index. `entries.project_id` uses `on delete set null (project_id)` so only the project column is cleared. Full-text search uses the `simple` configuration because notes mix Russian and English.
 
-**Sign-in.** Magic link for the emails listed in `ALLOWED_EMAILS` (one person per instance). `/auth/confirm` accepts both link styles: `token_hash` (custom email template, works on any device) and the default PKCE `code` (must be opened in the browser that requested it). Free-tier Supabase projects on the built-in email provider cannot change templates, so the cloud uses PKCE links until a custom SMTP provider is set up.
+**Sign-in.** Email and password, only for the emails listed in `ALLOWED_EMAILS` (one person per instance). Public sign-up is disabled in Supabase Auth itself, so nobody can register through the API with the publishable key; the owner's account is created once in the Supabase dashboard. No emails are sent, which avoids SMTP setup, the built-in hourly email limit and magic links opening in Safari instead of the installed PWA. A forgotten password is reset in the dashboard.
 
 **Embedding dimension.** `vector(1536)` matches OpenAI `text-embedding-3-small`, the proposed default. Switching models means a migration plus a re-embed script, so the model is set once per instance.
 
@@ -224,7 +224,7 @@ Goal: a secure database you can sign in to.
 
 - Migrations for the schema above, RLS policies, private `audio` bucket
 - Generated TypeScript types from the database
-- Magic-link sign-in, protected routes, sign-out
+- Email + password sign-in, protected routes, sign-out
 - Seed script with a few sample projects
 
 Done when:

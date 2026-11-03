@@ -1,11 +1,11 @@
 # Progress
 
-**Current version:** 0.2.0 · **Current phase:** Phase 2 — Text capture, Inbox & PWA · status: **not started**
+**Current version:** 0.2.1 · **Current phase:** Phase 2 — Text capture, Inbox & PWA · status: **not started**
 
 | Phase | Name                      | Status        |
 | ----- | ------------------------- | ------------- |
 | 0     | Foundation                | done (v0.1.0) |
-| 1     | Auth & data model         | done (v0.2.0) |
+| 1     | Auth & data model         | done (v0.2.1) |
 | 2     | Text capture, Inbox & PWA | —             |
 | 3     | AI sorting                | —             |
 | 4     | Voice capture             | —             |
@@ -38,9 +38,10 @@
 | 2026-11-03 | Env validated in `src/lib/env.ts` + `src/server/env.ts`, imported from `next.config.ts` | Missing or invalid env fails `dev`/`build` immediately                                |
 | 2026-11-03 | shadcn/ui with Radix base, Nova preset; `cn` package for classes                        | shadcn's current default; `cn` replaces clsx + tailwind-merge                         |
 | 2026-11-03 | Cloud Supabase on the Free plan (2nd of 2 free projects)                                | Needed to sign in from the phone; DB quota is per project, other quotas are tiny here |
-| 2026-11-03 | Sign-in limited by `ALLOWED_EMAILS` (only Mikhail for now)                              | Magic link would otherwise create an account for any email                            |
+| 2026-11-03 | Sign-in limited by `ALLOWED_EMAILS` (only Mikhail for now)                              | Defense in depth next to disabled sign-up                                             |
 | 2026-11-03 | Composite FKs on `(id, user_id)` for every cross-table reference                        | RLS alone lets a user reference someone else's row by id                              |
-| 2026-11-03 | `/auth/confirm` handles both `token_hash` and PKCE `code`                               | Free tier can't edit email templates; cloud uses PKCE until custom SMTP               |
+| 2026-11-03 | Email + password instead of magic links (v0.2.1)                                        | No SMTP needed, no email rate limit, works in the iOS PWA and across devices          |
+| 2026-11-03 | Public sign-up disabled in Supabase Auth; account created in the dashboard              | The publishable key is public, so the app-level allow-list alone could be bypassed    |
 | 2026-11-03 | Sign-out is per device (`scope: "local"`)                                               | Signing out on the laptop shouldn't sign out the phone                                |
 | 2026-11-03 | Full-text search with the `simple` config                                               | Notes mix Russian and English                                                         |
 | 2026-11-03 | Seed (local only): dev user `dev@engram.local`, projects Tamam and Engram               | Realistic projects for development; cloud gets no seed                                |
@@ -51,7 +52,6 @@
 
 - [ ] Is "Engram" free on GitHub, npm and a domain?
 - [ ] Default LLM provider for sorting and Ask?
-- [ ] Custom SMTP (e.g. Resend) for the cloud project? Unlocks the `token_hash` template (open the link on any device) and lifts the built-in hourly email limit.
 
 ## Ideas for later
 
@@ -60,5 +60,5 @@
 - Sidebar extras from the mockups: projects list with counts, top "Ask your brain" search with ⌘K (need data first)
 - Desktop quick-capture shortcut (⌘⇧Space in the mockups)
 - Phase 4: voice files share the org-wide 1 GB Storage quota with clinic-requests; delete audio after transcription or keep it only for N days
-- One-time code (OTP) sign-in as an alternative to links, for the installed iOS PWA (links open in Safari, not in the PWA)
+- Phase 8: `pnpm user:create` script so self-hosters can create their account without the dashboard
 - `pnpm/action-setup@v4` runs on deprecated Node 20 in CI; bump when a newer major is out
