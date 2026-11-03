@@ -1,5 +1,6 @@
 -- Local development seed. Applied by `supabase db reset`; never pushed to the cloud.
--- Sign in locally as dev@engram.local; the magic link arrives in Mailpit.
+-- Sign in locally as dev@engram.local with the password `engram-dev`.
+-- This account exists only in the local Docker stack.
 
 insert into auth.users (
   instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
@@ -8,7 +9,8 @@ insert into auth.users (
 ) values (
   '00000000-0000-0000-0000-000000000000',
   '00000000-0000-4000-8000-000000000001',
-  'authenticated', 'authenticated', 'dev@engram.local', '', now(),
+  'authenticated', 'authenticated', 'dev@engram.local',
+  extensions.crypt('engram-dev', extensions.gen_salt('bf')), now(),
   '{"provider": "email", "providers": ["email"]}', '{}', now(), now(),
   '', '', '', ''
 );

@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { env } from "@/lib/env";
 
 /** Routes that work without a session. */
-const PUBLIC_PATHS = ["/login", "/auth"];
+const PUBLIC_PATHS = ["/login"];
 
 function isPublic(pathname: string): boolean {
   return PUBLIC_PATHS.some(

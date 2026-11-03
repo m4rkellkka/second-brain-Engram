@@ -1,52 +1,63 @@
 "use server";
 
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/server/db/server";
 import { serverEnv } from "@/server/env";
 
+/**
+ * `email` is sent back on errors: React resets the form after every action,
+ * and the field is refilled from it so only the password has to be retyped.
+ */
 export type LoginState =
-  | { status: "idle" }
-  | { status: "sent"; email: string }
-  | { status: "error"; message: string };
+  { status: "idle" } | { status: "error"; message: string; email: string };
 
 const loginSchema = z.object({
   email: z.string().trim().toLowerCase().pipe(z.email()),
+  password: z.string().min(1).max(256),
 });
 
-/** Sends a magic link to an allowed email. */
-export async function sendMagicLink(
+const WRONG_CREDENTIALS = "Wrong email or password.";
+
+/** Signs in with email and password, then opens Capture. */
+export async function signIn(
   _previous: LoginState,
   formData: FormData,
 ): Promise<LoginState> {
-  const parsed = loginSchema.safeParse({ email: formData.get("email") });
+  const rawEmail = formData.get("email");
+  const typedEmail = typeof rawEmail === "string" ? rawEmail : "";
+  const parsed = loginSchema.safeParse({
+    email: rawEmail,
+    password: formData.get("password"),
+  });
   if (!parsed.success) {
-    return { status: "error", message: "Enter a valid email address." };
-  }
-  const { email } = parsed.data;
-
-  if (!serverEnv.ALLOWED_EMAILS.includes(email)) {
     return {
       status: "error",
-      message: "This email can't sign in to this Engram instance.",
+      message: "Enter your email and password.",
+      email: typedEmail,
     };
+  }
+  const { email, password } = parsed.data;
+
+  // Same message as a wrong password, so the form doesn't reveal who may sign in.
+  if (!serverEnv.ALLOWED_EMAILS.includes(email)) {
+    return { status: "error", message: WRONG_CREDENTIALS, email: typedEmail };
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithOtp({
-    email,
-    options: { emailRedirectTo: `${await requestOrigin()}/auth/confirm` },
-  });
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
     const message =
-      error.code === "over_email_send_rate_limit"
-        ? "Too many emails sent. Wait a few minutes and try again."
-        : "Couldn't send the link. Try again.";
-    return { status: "error", message };
+      error.code === "invalid_credentials"
+        ? WRONG_CREDENTIALS
+        : error.status === 429
+          ? "Too many attempts. Wait a few minutes and try again."
+          : "Couldn't sign in. Try again.";
+    return { status: "error", message, email: typedEmail };
   }
-  return { status: "sent", email };
+
+  redirect("/capture");
 }
 
 export async function signOut() {
@@ -54,18 +65,4 @@ export async function signOut() {
   // Only this device; sessions on the phone or laptop stay signed in.
   await supabase.auth.signOut({ scope: "local" });
   redirect("/login");
-}
-
-/**
- * The origin the user is on (localhost, LAN IP or the deployed domain), so the
- * magic link brings them back to the same place. Supabase only accepts
- * origins listed in its redirect allow-list and falls back to the Site URL.
- */
-async function requestOrigin(): Promise<string> {
-  const h = await headers();
-  const origin = h.get("origin");
-  if (origin) return origin;
-  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
-  const proto = h.get("x-forwarded-proto") ?? "http";
-  return `${proto}://${host}`;
 }
