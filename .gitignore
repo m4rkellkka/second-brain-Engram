@@ -6,9 +6,32 @@ AGENTS.md
 .cursor/
 .cursorrules
 
-# Env
+# dependencies
+/node_modules
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+/build
+next-env.d.ts
+*.tsbuildinfo
+
+# env files
 .env*
 !.env.example
 
-# OS
+# vercel
+.vercel
+
+# supabase
+supabase/.branches
+supabase/.temp
+
+# misc
 .DS_Store
+*.pem
+npm-debug.log*
+.pnpm-debug.log*
