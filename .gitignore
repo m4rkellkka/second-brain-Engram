@@ -1,0 +1,14 @@
+# AI tooling (local only)
+CLAUDE.md
+CLAUDE.local.md
+.claude/
+AGENTS.md
+.cursor/
+.cursorrules
+
+# Env
+.env*
+!.env.example
+
+# OS
+.DS_Store
