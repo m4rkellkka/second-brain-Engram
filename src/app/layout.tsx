@@ -18,6 +18,12 @@ export const metadata: Metadata = {
     template: "%s · Engram",
   },
   description: "Your self-hosted second brain.",
+  // iOS home-screen app: full screen, dark status bar over our own header.
+  appleWebApp: {
+    capable: true,
+    title: "Engram",
+    statusBarStyle: "black-translucent",
+  },
 };
 
 export const viewport: Viewport = {

@@ -74,7 +74,8 @@ function redirectKeepingCookies(
 
 export const config = {
   matcher: [
-    // Everything except static assets and Next internals.
-    "/((?!_next/static|_next/image|icon.svg|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    // Everything except static assets, Next internals and the PWA files,
+    // which iOS fetches without a session when installing the app.
+    "/((?!_next/static|_next/image|icon.svg|apple-icon|manifest.webmanifest|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
