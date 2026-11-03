@@ -6,6 +6,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-11-03
+
+### Changed
+
+- Sign-in uses email and password instead of magic links. No emails are sent, so it works on every device, in the installed iOS PWA and without an SMTP provider.
+- After a failed sign-in the email stays in the form; only the password is cleared.
+- The seeded local user `dev@engram.local` has the password `engram-dev`.
+
+### Removed
+
+- Magic link flow: the `/auth/confirm` route, the custom email template and the LAN redirect URLs.
+
+### Security
+
+- Public sign-up is disabled in Supabase Auth, locally and in the cloud, so nobody can create an account through the API with the publishable key. Covered by a new auth test.
+- A non-allowed email gets the same error as a wrong password, so the form doesn't reveal who may sign in.
+
 ## [0.2.0] - 2026-11-03
 
 ### Added
@@ -37,6 +54,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GitHub Actions CI: lint, format check, typecheck and build.
 - MIT license.
 
-[Unreleased]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/m4rkellkka/second-brain-Engram/releases/tag/v0.1.0
