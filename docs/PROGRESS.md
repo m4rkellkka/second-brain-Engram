@@ -22,7 +22,7 @@
 - [x] Capture screen: textarea focused on open, Save button and ⌘Enter, optimistic "Just saved" list (no mic button until Phase 4). Builds, lint and types pass; **WebKit check still to do** (a second dev server cannot run while one is already running in this folder)
 - [ ] Inbox: latest 50 entries, `?kind=` filter, project picker with inline "+ New project"
 - [ ] Refresh the Inbox on tab/app focus
-- [ ] PWA: `manifest.ts`, icons via `ImageResponse`, apple-touch-icon and iOS meta, start at `/capture`
+- [x] PWA: `manifest.ts`, apple-touch-icon via `ImageResponse`, iOS meta, start at `/capture`. Builds; **install on the iPhone still to check**
 - [ ] Move rls/auth tests onto `tests/support/local-supabase.ts`
 - [ ] Release v0.3.0, CHANGELOG, phase report
 
