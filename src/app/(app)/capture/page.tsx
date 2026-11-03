@@ -1,15 +1,8 @@
 import type { Metadata } from "next";
-import { Mic } from "lucide-react";
-import { EmptyState } from "@/components/empty-state";
+import { CaptureForm } from "@/features/capture/capture-form";
 
 export const metadata: Metadata = { title: "Capture" };
 
 export default function CapturePage() {
-  return (
-    <EmptyState
-      icon={Mic}
-      title="What's on your mind?"
-      description="Type or talk. Engram will sort it into the right project."
-    />
-  );
+  return <CaptureForm />;
 }
