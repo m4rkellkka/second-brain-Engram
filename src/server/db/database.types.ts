@@ -201,7 +201,31 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
-      [_ in never]: never;
+      create_text_capture: {
+        Args: { content: string };
+        Returns: {
+          capture_id: string | null;
+          confidence: number | null;
+          content: string;
+          created_at: string;
+          done_at: string | null;
+          due_at: string | null;
+          embedding: string | null;
+          id: string;
+          kind: Database["public"]["Enums"]["entry_kind"];
+          needs_review: boolean;
+          project_id: string | null;
+          updated_at: string;
+          url: string | null;
+          user_id: string;
+        };
+        SetofOptions: {
+          from: "*";
+          to: "entries";
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
     };
     Enums: {
       capture_source: "text" | "voice";
