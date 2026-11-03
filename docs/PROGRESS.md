@@ -19,7 +19,7 @@
 - [x] `create_text_capture` DB function: one text capture + one note entry, atomic (applied locally and in the cloud)
 - [x] `saveCapture` server action with shared zod schema
 - [x] Tests for the schema and the function
-- [ ] Capture screen: textarea focused on open, Save button and ⌘Enter, optimistic "Just saved" list (no mic button until Phase 4)
+- [x] Capture screen: textarea focused on open, Save button and ⌘Enter, optimistic "Just saved" list (no mic button until Phase 4). Builds, lint and types pass; **WebKit check still to do** (a second dev server cannot run while one is already running in this folder)
 - [ ] Inbox: latest 50 entries, `?kind=` filter, project picker with inline "+ New project"
 - [ ] Refresh the Inbox on tab/app focus
 - [ ] PWA: `manifest.ts`, icons via `ImageResponse`, apple-touch-icon and iOS meta, start at `/capture`
