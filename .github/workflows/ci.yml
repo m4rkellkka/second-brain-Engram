@@ -16,6 +16,7 @@ jobs:
       # Placeholder values so env validation passes; nothing connects to them in CI.
       NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:55321
       NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ci-placeholder
+      ALLOWED_EMAILS: ci@engram.test
     steps:
       - uses: actions/checkout@v5
       - uses: pnpm/action-setup@v4
@@ -28,3 +29,18 @@ jobs:
       - run: pnpm format:check
       - run: pnpm typecheck
       - run: pnpm build
+
+  db-test:
+    # RLS tests against a throwaway local Supabase stack (migrations + seed).
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Start Supabase (only the services the tests need)
+        run: pnpm supabase start -x realtime,imgproxy,mailpit,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+      - run: pnpm test
