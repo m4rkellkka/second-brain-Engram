@@ -34,7 +34,10 @@ export function CaptureForm() {
         content: value,
         pending: true,
       });
-      const result = await saveCapture(value);
+      const result = await saveCapture(
+        value,
+        Intl.DateTimeFormat().resolvedOptions().timeZone,
+      );
       if (result.ok) {
         setSaved((state) =>
           [
