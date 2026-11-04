@@ -6,6 +6,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-04
+
+### Added
+
+- Projects list with status, open tasks, entry count and last update; create a project from it.
+- Project page with a live context: summary, status, stack, decisions and open ideas, each AI item showing the notes it came from, plus the project's tasks with checkboxes.
+- Live context updates itself: after a capture is sorted, Claude adds what the new entries say to the project's page. It only adds, never deletes, and anything you write by hand stays as you wrote it ("Let AI update" hands it back).
+- Filing an entry by hand or confirming it in the Inbox also updates its project.
+- Rename, recolor and archive projects.
+
+### Changed
+
+- Project context is stored as rows instead of one JSON column; existing context is migrated.
+
+### Fixed
+
+- The active navigation item no longer blocks rendering on dynamic routes.
+
 ## [0.4.0] - 2026-11-04
 
 ### Added
@@ -85,7 +103,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GitHub Actions CI: lint, format check, typecheck and build.
 - MIT license.
 
-[Unreleased]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.2.0...v0.2.1
