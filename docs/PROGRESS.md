@@ -13,6 +13,7 @@
 | 6     | Search & Ask              | —             |
 | 7     | Brain graph               | —             |
 | 8     | Open-source launch        | —             |
+| 9     | Claude connector (MCP)    | —             |
 
 ## Phase 2 checklist (done)
 
@@ -65,6 +66,7 @@
 | 2026-11-04 | Visual checks run the dev server against the local stack, not the cloud                 | Test captures must not land in Mikhail's real data                                            |
 | 2026-11-04 | Cloud account recreated (old one deleted, new one made in the dashboard)                | Old password was lost; cascade removed the old data, allow-list updated, sign-up still closed |
 | 2026-11-04 | Default LLM provider: Claude API (Anthropic) via the Vercel AI SDK                      | Mikhail's call; provider and models stay configurable via env                                 |
+| 2026-11-04 | New Phase 9: Claude connector (MCP), after the MVP, before 1.0.0                        | Mikhail wants to talk with Claude in its app and say "save this to Engram"                    |
 
 ## Open questions
 
@@ -78,7 +80,6 @@
 
 ## Ideas for later
 
-- MCP server so Claude / Cursor can read Engram context
 - Today screen, reminders, iOS Shortcut capture, Obsidian import
 - Sidebar extras from the mockups: projects list with counts, top "Ask your brain" search with ⌘K (need data first)
 - Desktop quick-capture shortcut (⌘⇧Space in the mockups)

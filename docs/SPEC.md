@@ -28,7 +28,7 @@ The MVP is five screens in one installable PWA, for a single user per self-hoste
 | Ask      | Chat with your own notes, answers cite the source entries          | Ask by text or voice, open a cited entry              |
 | Brain    | 3D graph of all entries, clustered by project                      | Rotate, hover, click a node to open its project       |
 
-**Out of scope for the MVP:** teams and multi-user hosting, native iOS/Android apps, the MCP server, reminders and push notifications, a "Today" screen, calendar/email integrations, iOS share-sheet capture, full offline sync. These are listed under Post-MVP.
+**Out of scope for the MVP:** teams and multi-user hosting, native iOS/Android apps, the MCP server (Phase 9, after the MVP but before 1.0.0), reminders and push notifications, a "Today" screen, calendar/email integrations, iOS share-sheet capture, full offline sync. These are listed under Post-MVP.
 
 ## Architecture & stack
 
@@ -192,13 +192,14 @@ const SortedCapture = z.object({
 
 ## Build phases
 
-Nine phases, each ending in something working that you can try. Each phase is built, demoed and explicitly approved before the next one starts.
+Ten phases, each ending in something working that you can try. Phases 0–8 are the MVP; Phase 9 comes right after it and must ship before the stable 1.0.0. Each phase is built, demoed and explicitly approved before the next one starts.
 
 ```mermaid
 flowchart LR
   P0[0 · Foundation] -->|OK| P1[1 · Auth + data model] -->|OK| P2[2 · Text capture + PWA]
   P2 -->|OK| P3[3 · AI sorting] -->|OK| P4[4 · Voice capture] -->|OK| P5[5 · Projects + live context]
   P5 -->|OK| P6[6 · Search + Ask] -->|OK| P7[7 · Brain graph] -->|OK| P8[8 · Open-source launch]
+  P8 -->|OK| P9[9 · Claude connector]
 ```
 
 **Rules for every phase:** stay inside the phase scope, keep `lint`, `typecheck` and `build` green, add tests for logic that can break silently (RLS, pipeline parsing), commit in small conventional commits, and end with a short report: what was built, how to try it, what was left out, open questions.
@@ -325,6 +326,21 @@ Done when:
 
 - [ ] Someone who never saw the code gets a running instance from the README in under 15 minutes
 
+### Phase 9 — Claude connector (MCP)
+
+Goal: talk things through with Claude in the Claude app, then say "save this to my second brain".
+
+- Remote MCP server in the Engram app (Streamable HTTP route), so it works in the Claude apps on phone and desktop, including voice mode
+- Write tool `save_to_engram`: Claude sends a summary of the conversation (what was discussed, decisions, ideas, tasks); it becomes a normal capture and goes through the sorting pipeline
+- Read tools: `search_entries`, `get_project_context`, `list_tasks`, so Claude starts with your context
+- Sign-in through OAuth for the connector, scoped to the single user of the instance; every call goes through RLS
+- Built on `dev` after the MVP merge; released as `0.10.0`
+
+Done when:
+
+- [ ] In the Claude iPhone app, a voice conversation ends with "save this to Engram", and the summary shows up as sorted entries in the Inbox
+- [ ] Asking Claude about a project returns its live context from Engram
+
 ## Open source & post-MVP
 
 The repo is public from day one, MIT-licensed, with the README growing phase by phase so launch day is not a rewrite.
@@ -333,7 +349,7 @@ The repo is public from day one, MIT-licensed, with the README growing phase by 
 
 **Post-MVP, in rough priority:**
 
-1. **MCP server.** Read-only tools (`search_entries`, `get_project_context`, `list_tasks`) so Claude, Cursor and other AI tools start with your context instead of zero.
+1. **MCP server.** Moved into Phase 9 (Claude connector), required before 1.0.0.
 2. **Today screen.** A morning summary of tasks due, recent ideas and stale projects.
 3. **Reminders.** Web push for due tasks.
 4. **Capture from anywhere.** An iOS Shortcut and a browser extension that post to the capture API.
