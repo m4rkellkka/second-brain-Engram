@@ -2,51 +2,16 @@
  * Row Level Security: user B must not read or write user A's rows or files.
  * Runs against the local Supabase stack (`pnpm db:start`, then `pnpm db:reset`).
  */
-import { execSync } from "node:child_process";
-import { randomUUID } from "node:crypto";
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import type { Database } from "@/server/db/database.types";
+import {
+  admin,
+  createUser,
+  deleteUsers,
+  publicClient,
+  type Client,
+} from "./support/local-supabase";
 
-type Client = SupabaseClient<Database>;
-
-const local = JSON.parse(
-  execSync("pnpm --silent supabase status -o json", { encoding: "utf8" }),
-) as { API_URL: string; PUBLISHABLE_KEY: string; SECRET_KEY: string };
-
-const noSession = { auth: { persistSession: false, autoRefreshToken: false } };
-const admin = createClient<Database>(
-  local.API_URL,
-  local.SECRET_KEY,
-  noSession,
-);
-const anon: Client = createClient<Database>(
-  local.API_URL,
-  local.PUBLISHABLE_KEY,
-  noSession,
-);
-
-async function createUser(): Promise<{ id: string; client: Client }> {
-  const email = `rls-${randomUUID()}@engram.test`;
-  const password = randomUUID();
-  const { data, error } = await admin.auth.admin.createUser({
-    email,
-    password,
-    email_confirm: true,
-  });
-  if (error) throw error;
-  const client = createClient<Database>(
-    local.API_URL,
-    local.PUBLISHABLE_KEY,
-    noSession,
-  );
-  const { error: signInError } = await client.auth.signInWithPassword({
-    email,
-    password,
-  });
-  if (signInError) throw signInError;
-  return { id: data.user.id, client };
-}
+const anon = publicClient();
 
 let a: { id: string; client: Client };
 let b: { id: string; client: Client };
@@ -118,11 +83,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await admin.storage.from("audio").remove([rows.audioPath]);
-  await Promise.all(
-    [a?.id, b?.id]
-      .filter((id): id is string => Boolean(id))
-      .map((id) => admin.auth.admin.deleteUser(id)),
-  );
+  await deleteUsers([a?.id, b?.id]);
 });
 
 describe("owner access", () => {
