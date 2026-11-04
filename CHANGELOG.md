@@ -6,6 +6,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Capture screen: the text field is focused on open; save with the button or ⌘/Ctrl+Enter. Saved thoughts show up at once in a "Just saved" list, and the text comes back if saving fails.
+- `create_text_capture` database function: one text capture and one `note` entry, saved atomically under RLS.
+- Inbox: the latest 50 entries, newest first, with type filters (`?kind=`) and a project picker on every entry, including an inline "+ New project".
+- The Inbox refreshes when the tab or the installed app comes back to the foreground, so a thought saved on the phone shows up on the laptop.
+- Installable PWA: web app manifest, home-screen icon and iOS meta tags; the app opens on Capture.
+
 ### Changed
 
 - CI runs only when the pushed head commit is a `chore` commit on `demo` or `dev`, and never on `main` or pull requests.
