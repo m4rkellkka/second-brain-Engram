@@ -23,7 +23,7 @@
 - [x] Inbox: latest 50 entries, `?kind=` filter, project picker with inline "+ New project". Checked in WebKit (iPhone + desktop)
 - [x] Refresh the Inbox on tab/app focus
 - [x] PWA: `manifest.ts`, apple-touch-icon via `ImageResponse`, iOS meta, start at `/capture`. Builds; **install on the iPhone still to check**
-- [ ] Move rls/auth tests onto `tests/support/local-supabase.ts`
+- [x] Move rls/auth tests onto `tests/support/local-supabase.ts`
 - [ ] Release v0.3.0, CHANGELOG, phase report
 
 ## Environments
