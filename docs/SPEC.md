@@ -4,7 +4,7 @@
 
 ## Overview
 
-Engram is an open-source, self-hosted second brain: you dump thoughts by voice or text, and AI files them into the right project and keeps each project's context up to date.
+Engram is an open-source, self-hosted second brain: you dump thoughts as text (typed or dictated with the keyboard, or summed up from a conversation with Claude), and AI files them into the right project and keeps each project's context up to date.
 
 **The problem.** Ideas get lost, notes live nowhere, and every AI tool starts from zero about your projects. Manual systems like Obsidian or Notion fail because filing is work and the payoff comes late.
 
@@ -20,13 +20,13 @@ Engram is an open-source, self-hosted second brain: you dump thoughts by voice o
 
 The MVP is five screens in one installable PWA, for a single user per self-hosted instance.
 
-| Screen   | What it does                                                       | Key interactions                                      |
-| -------- | ------------------------------------------------------------------ | ----------------------------------------------------- |
-| Capture  | Instant text or voice input; shows how the last capture was sorted | Tap to talk, type, attach link                        |
-| Inbox    | Feed of recent entries, already typed and filed                    | Filter by type, fix project, resolve "not sure" items |
-| Projects | Project page with a live context the AI keeps updated              | Edit context, tick tasks, rename, archive             |
-| Ask      | Chat with your own notes, answers cite the source entries          | Ask by text or voice, open a cited entry              |
-| Brain    | 3D graph of all entries, clustered by project                      | Rotate, hover, click a node to open its project       |
+| Screen   | What it does                                              | Key interactions                                      |
+| -------- | --------------------------------------------------------- | ----------------------------------------------------- |
+| Capture  | Instant text input; shows how the last capture was sorted | Type or use keyboard dictation, attach link           |
+| Inbox    | Feed of recent entries, already typed and filed           | Filter by type, fix project, resolve "not sure" items |
+| Projects | Project page with a live context the AI keeps updated     | Edit context, tick tasks, rename, archive             |
+| Ask      | Chat with your own notes, answers cite the source entries | Ask by text, open a cited entry                       |
+| Brain    | 3D graph of all entries, clustered by project             | Rotate, hover, click a node to open its project       |
 
 **Out of scope for the MVP:** teams and multi-user hosting, native iOS/Android apps, the MCP server (Phase 9, after the MVP but before 1.0.0), reminders and push notifications, a "Today" screen, calendar/email integrations, iOS share-sheet capture, full offline sync. These are listed under Post-MVP.
 
@@ -51,7 +51,7 @@ flowchart TB
   end
   subgraph AI["AI providers · any model"]
     direction LR
-    LLM[LLM: sort, context, Ask] ~~~ STT[Transcription] ~~~ EMB[Embeddings]
+    LLM[LLM: sort, context, Ask] ~~~ EMB[Embeddings]
   end
   Client -- capture, ask --> ACT
   ACT -- read / write --> Supa
@@ -68,7 +68,7 @@ The browser talks only to Next.js (sign-in also goes through a Server Action); A
 | PWA             | Web app manifest + service worker                        | Installs to the iPhone home screen, no App Store                                  |
 | Data            | Supabase Postgres + pgvector                             | Relational data and vector search in one database                                 |
 | Auth            | Supabase Auth (email + password, sign-up disabled)       | No email round-trips, works in the installed iOS PWA and on every device          |
-| Files           | Supabase Storage (private bucket)                        | Voice recordings                                                                  |
+| Files           | Supabase Storage (private bucket)                        | Reserved for voice recordings; unused since Phase 4 was dropped                   |
 | AI              | Vercel AI SDK                                            | One interface for Anthropic, OpenAI or local models; structured output with zod   |
 | Background work | Next.js `after()` + Vercel Cron sweep                    | Process captures after the response; retry anything stuck                         |
 | 3D graph        | react-three-fiber or 3d-force-graph (decided in Phase 7) | WebGL rendering for thousands of nodes                                            |
@@ -157,7 +157,7 @@ create table entry_links (
 Every capture runs through the same server-side pipeline after the user already got a response, so capture always feels instant.
 
 1. **Save.** The capture is stored with `status = pending`; the UI returns immediately.
-2. **Transcribe** (voice only). Audio from Storage goes to the transcription provider; the transcript becomes `raw_text`.
+2. **Transcribe** (dropped with Phase 4). Voice reaches Engram as text: keyboard dictation, or a conversation summary from the Phase 9 connector.
 3. **Sort.** One LLM call with structured output splits the text into entries and assigns kind, project, due date and confidence. It receives the list of existing projects (name, slug, summary) so it can match them.
 4. **Review gate.** Entries with confidence below a threshold, or no matching project, get `needs_review = true` and show the "not sure" card in the Inbox.
 5. **Embed + link.** Each entry is embedded; the top similar entries above a similarity threshold become `semantic` links for the graph.
@@ -192,12 +192,12 @@ const SortedCapture = z.object({
 
 ## Build phases
 
-Ten phases, each ending in something working that you can try. Phases 0–8 are the MVP; Phase 9 comes right after it and must ship before the stable 1.0.0. Each phase is built, demoed and explicitly approved before the next one starts.
+Ten phases were planned; Phase 4 (voice capture) was dropped on 2026-11-04. Each one ends in something working that you can try. Phases 0–8 are the MVP; Phase 9 comes right after it and must ship before the stable 1.0.0. Releases are numbered in order: each shipped phase bumps the minor version. Each phase is built, demoed and explicitly approved before the next one starts.
 
 ```mermaid
 flowchart LR
   P0[0 · Foundation] -->|OK| P1[1 · Auth + data model] -->|OK| P2[2 · Text capture + PWA]
-  P2 -->|OK| P3[3 · AI sorting] -->|OK| P4[4 · Voice capture] -->|OK| P5[5 · Projects + live context]
+  P2 -->|OK| P3[3 · AI sorting] -->|OK| P5[5 · Projects + live context]
   P5 -->|OK| P6[6 · Search + Ask] -->|OK| P7[7 · Brain graph] -->|OK| P8[8 · Open-source launch]
   P8 -->|OK| P9[9 · Claude connector]
 ```
@@ -261,17 +261,12 @@ Done when:
 - [ ] On a fixture set of 20 real captures, at least 17 land in the right project (proposed bar)
 - [ ] Cost per capture is measured and written in the phase report
 
-### Phase 4 — Voice capture
+### Phase 4 — Voice capture (dropped)
 
-Goal: talk instead of type.
+Dropped on 2026-11-04. Recording and transcribing inside Engram would need a second AI provider and API key just for speech, which is a barrier for an open-source project. Voice still works without it:
 
-- Recording UI from the mockup: big mic button, waveform, timer, stop
-- MediaRecorder with format detection (iOS Safari records mp4/aac, others webm), 3-minute limit
-- Upload to Storage, transcription, then the normal pipeline
-
-Done when:
-
-- [ ] A 30-second voice note recorded in the iPhone PWA becomes sorted entries in the Inbox
+- Keyboard dictation (iOS and Android) types straight into the Capture field, free and in Russian too
+- Talking with Claude in its own app and saving the summary to Engram is part of Phase 9
 
 ### Phase 5 — Projects & live context
 
@@ -334,7 +329,7 @@ Goal: talk things through with Claude in the Claude app, then say "save this to 
 - Write tool `save_to_engram`: Claude sends a summary of the conversation (what was discussed, decisions, ideas, tasks); it becomes a normal capture and goes through the sorting pipeline
 - Read tools: `search_entries`, `get_project_context`, `list_tasks`, so Claude starts with your context
 - Sign-in through OAuth for the connector, scoped to the single user of the instance; every call goes through RLS
-- Built on `dev` after the MVP merge; released as `0.10.0`
+- Built on `dev` after the MVP merge; released as `0.9.0`
 
 Done when:
 
