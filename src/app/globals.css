@@ -62,6 +62,10 @@
   --kind-note: var(--primary-text);
   --kind-link: var(--project-5);
 
+  /* "Not sure" review cards */
+  --review: #f2c66b;
+  --review-border: #4a3f22;
+
   /* Controls 10–12px, cards 18–20px */
   --radius: 0.75rem;
 
@@ -91,6 +95,8 @@
   --color-kind-task: var(--kind-task);
   --color-kind-note: var(--kind-note);
   --color-kind-link: var(--kind-link);
+  --color-review: var(--review);
+  --color-review-border: var(--review-border);
 
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);

@@ -23,3 +23,26 @@ export function formatAge(date: Date, now: Date): string {
     date.getFullYear() === now.getFullYear() ? sameYear : otherYear
   ).format(date);
 }
+
+/** Due date in the capture's time zone: `Fri, Nov 6` or `Fri, Nov 6, 18:00`. */
+export function formatDue(date: Date, timeZone: string | null): string {
+  let zone = timeZone ?? "UTC";
+  try {
+    new Intl.DateTimeFormat("en", { timeZone: zone });
+  } catch {
+    zone = "UTC";
+  }
+  const time = new Intl.DateTimeFormat("en-GB", {
+    timeZone: zone,
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+  const day = new Intl.DateTimeFormat("en", {
+    timeZone: zone,
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  }).format(date);
+  // 09:00 is what the sorter uses for a date without a time.
+  return time === "09:00" ? day : `${day}, ${time}`;
+}

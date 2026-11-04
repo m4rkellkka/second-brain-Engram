@@ -22,3 +22,10 @@ export const assignNewProjectSchema = z.object({
   entryId: z.uuid(),
   name: projectNameSchema,
 });
+
+export const entryIdSchema = z.uuid();
+
+export const changeKindSchema = z.object({
+  entryId: z.uuid(),
+  kind: z.enum(ENTRY_KINDS),
+});
