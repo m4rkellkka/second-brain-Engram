@@ -1,13 +1,13 @@
 # Progress
 
-**Current version:** 0.3.0 · **Current phase:** Phase 3 — AI sorting · status: **in progress** (code done, waiting on real-model checks)
+**Current version:** 0.4.0 · **Current phase:** Phase 4 — Voice capture · status: **not started** (waiting for the plan)
 
 | Phase | Name                      | Status        |
 | ----- | ------------------------- | ------------- |
 | 0     | Foundation                | done (v0.1.0) |
 | 1     | Auth & data model         | done (v0.2.1) |
 | 2     | Text capture, Inbox & PWA | done (v0.3.0) |
-| 3     | AI sorting                | in progress   |
+| 3     | AI sorting                | done (v0.4.0) |
 | 4     | Voice capture             | —             |
 | 5     | Projects & live context   | —             |
 | 6     | Search & Ask              | —             |
@@ -27,10 +27,10 @@
 - [x] Move rls/auth tests onto `tests/support/local-supabase.ts`
 - [x] Release v0.3.0, CHANGELOG, phase report
 
-## Phase 3 checklist (approved plan)
+## Phase 3 checklist (done)
 
-- [x] Migration: pending captures with time zone, `claim_capture`, `apply_sorted_capture`, `fail_capture`, `ai_calls`, `entry_corrections` (local only; **cloud push waits for Mikhail**: `pnpm db:push`)
-- [x] Provider layer on the Vercel AI SDK + `@ai-sdk/anthropic`; `AI_SORT_MODEL` (default Sonnet 5.5), effort low
+- [x] Migration: pending captures with time zone, `claim_capture`, `apply_sorted_capture`, `fail_capture`, `ai_calls`, `entry_corrections` (local and cloud)
+- [x] Provider layer on the Vercel AI SDK + `@ai-sdk/anthropic`; `AI_SORT_MODEL` (default Haiku 5.5), effort low
 - [x] Sort step with structured output; projects, local time and time zone in the prompt
 - [x] Pipeline in `after()`: claim → sort → entries → processed; failures retried, note kept after 3 attempts; no API key → plain note
 - [x] Retry sweep after each save and from the Inbox; daily Vercel Cron route as a backstop
@@ -38,8 +38,8 @@
 - [x] Token usage and cost logged per call in `ai_calls`
 - [x] Tests: pipeline with a mock model against the local stack, row mapping, cost; WebKit check of the Inbox
 - [x] `pnpm eval:sort` with an example fixture set
-- [ ] Run the eval on 20 real captures (needs `ANTHROPIC_API_KEY` and the fixtures) and measure cost per capture
-- [ ] Release v0.4.0, CHANGELOG, phase report
+- [x] Eval on the 5 example captures with Haiku 5.5: 5/5 right, $0.00018 and ~1.8 s per capture. The 20 real captures are still open (see Open questions)
+- [x] Release v0.4.0, CHANGELOG, phase report
 
 ## Environments
 
@@ -81,7 +81,7 @@
 | 2026-11-04 | Cloud account recreated (old one deleted, new one made in the dashboard)                | Old password was lost; cascade removed the old data, allow-list updated, sign-up still closed |
 | 2026-11-04 | Default LLM provider: Claude API (Anthropic) via the Vercel AI SDK                      | Mikhail's call; provider and models stay configurable via env                                 |
 | 2026-11-04 | New Phase 9: Claude connector (MCP), after the MVP, before 1.0.0                        | Mikhail wants to talk with Claude in its app and say "save this to Engram"                    |
-| 2026-11-04 | Phase 3 sorting: Sonnet 5.5 in the app, Haiku 5.5 for dev eval runs                     | Mikhail wants sorting to be right; Haiku keeps repeated test runs cheap                       |
+| 2026-11-04 | Phase 3 sorting on Claude Haiku 5.5 in the app and in evals (Sonnet 5.5 via env)        | Mikhail's call: Sonnet costs ~20x more; Haiku got 5/5 on the example set                      |
 | 2026-11-04 | AI never creates projects; it suggests one on the "not sure" card                       | Avoids a pile of junk projects; creating is one tap                                           |
 | 2026-11-04 | Capture timezone comes from the browser and is stored on the capture                    | "Friday" resolves correctly, also on retries and when travelling                              |
 | 2026-11-04 | After 3 failed sorts the thought is kept as a plain note with `needs_review`            | Nothing typed is ever lost                                                                    |
@@ -89,7 +89,7 @@
 ## Open questions
 
 - [ ] Is "Engram" free on GitHub, npm and a domain?
-- [ ] 20 real captures with the right project for the Phase 3 eval (Mikhail, later; can be drafted from his own Inbox once he has used it for a few days)
+- [ ] Phase 3 "Done when" not fully met: the 17/20 check on real captures is still to run. Released without it at Mikhail's request; draft the 20 fixtures from his Inbox once it has real data, then `pnpm eval:sort`
 
 ## TODO (known gaps)
 
