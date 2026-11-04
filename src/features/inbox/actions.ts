@@ -1,11 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import {
-  pickColor,
-  slugify,
-  uniqueSlug,
-} from "@/features/projects/new-project";
+import { findOrCreateProject } from "@/features/projects/create";
 import { after } from "next/server";
 import { sortModel } from "@/server/ai/provider";
 import { createClient } from "@/server/db/server";
@@ -120,41 +116,10 @@ export async function assignNewProject(input: {
   const { entryId, name } = parsed.data;
 
   const supabase = await createClient();
-  const { data: auth } = await supabase.auth.getClaims();
-  const userId = auth?.claims.sub;
-  if (!userId) return { ok: false, message: "Sign in again." };
+  const project = await findOrCreateProject(supabase, name);
+  if (!project.ok) return project;
 
-  const { data: projects, error: listError } = await supabase
-    .from("projects")
-    .select("id, name, slug, color, archived_at");
-  if (listError) return { ok: false, message: MOVE_FAILED };
-
-  const active = projects.filter((project) => !project.archived_at);
-  let projectId = active.find(
-    (project) => project.name.toLowerCase() === name.toLowerCase(),
-  )?.id;
-
-  if (!projectId) {
-    const { data: created, error } = await supabase
-      .from("projects")
-      .insert({
-        user_id: userId,
-        name,
-        slug: uniqueSlug(
-          slugify(name),
-          projects.map((project) => project.slug),
-        ),
-        color: pickColor(active.map((project) => project.color)),
-      })
-      .select("id")
-      .single();
-    if (error) {
-      return { ok: false, message: "Couldn't create the project. Try again." };
-    }
-    projectId = created.id;
-  }
-
-  return setEntryProject(supabase, entryId, projectId);
+  return setEntryProject(supabase, entryId, project.id);
 }
 
 /** "Looks right" on a "not sure" card: keeps the AI's choice. */
