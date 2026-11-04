@@ -64,17 +64,17 @@
 | 2026-11-04 | New project slugs transliterate Cyrillic (`Жизнь` → `zhizn`)                            | Most project names are Russian; slugs feed project URLs in Phase 5                            |
 | 2026-11-04 | Visual checks run the dev server against the local stack, not the cloud                 | Test captures must not land in Mikhail's real data                                            |
 | 2026-11-04 | Cloud account recreated (old one deleted, new one made in the dashboard)                | Old password was lost; cascade removed the old data, allow-list updated, sign-up still closed |
+| 2026-11-04 | Default LLM provider: Claude API (Anthropic) via the Vercel AI SDK                      | Mikhail's call; provider and models stay configurable via env                                 |
 
 ## Open questions
 
 - [ ] Is "Engram" free on GitHub, npm and a domain?
-- [ ] Default LLM provider for sorting and Ask?
 
 ## TODO (known gaps)
 
 - [ ] **Service worker** (spec: PWA = manifest + service worker). Skipped in Phase 2: iOS installs the PWA without it and offline sync is out of the MVP. Add it with a cache strategy that never serves another session's data.
 - [ ] **Inline "+ New project" in the Inbox project picker** is a stopgap from Phase 2. Replace it with proper project management in Phase 5 (create, rename, colors, archive).
-- [ ] **Realtime Inbox.** Phase 2 refreshes on tab/app focus only: if the laptop window already has focus, a thought saved on the phone shows up only after switching away and back, or a reload (Mikhail noticed this in the Phase 2 check). Options: Supabase Realtime, or a light poll while the page is visible.
+- [ ] **Realtime Inbox.** Phase 2 refreshes on tab/app focus only: if the laptop window already has focus, a thought saved on the phone shows up only after switching away and back, or a reload (Mikhail noticed this in the Phase 2 check). Options: Supabase Realtime, or a light poll while the page is visible. Not needed now (Mikhail, 2026-11-04); revisit later if switching windows gets annoying.
 
 ## Ideas for later
 
