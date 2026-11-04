@@ -258,42 +258,96 @@ export type Database = {
           },
         ];
       };
+      project_context_items: {
+        Row: {
+          created_at: string;
+          entry_ids: string[];
+          id: string;
+          project_id: string;
+          section: string;
+          source: string;
+          text: string;
+          updated_at: string;
+          user_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          entry_ids?: string[];
+          id?: string;
+          project_id: string;
+          section: string;
+          source: string;
+          text: string;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          entry_ids?: string[];
+          id?: string;
+          project_id?: string;
+          section?: string;
+          source?: string;
+          text?: string;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "project_context_items_project_id_user_id_fkey";
+            columns: ["project_id", "user_id"];
+            isOneToOne: false;
+            referencedRelation: "projects";
+            referencedColumns: ["id", "user_id"];
+          },
+        ];
+      };
       projects: {
         Row: {
           archived_at: string | null;
           color: string;
-          context: NonNullable<Json>;
           context_updated_at: string | null;
           created_at: string;
           id: string;
           name: string;
           slug: string;
           status: string | null;
+          status_source: string;
+          summary: string | null;
+          summary_entry_ids: string[];
+          summary_source: string;
           user_id: string;
         };
         ComputedFields: never;
         Insert: {
           archived_at?: string | null;
           color: string;
-          context?: NonNullable<Json>;
           context_updated_at?: string | null;
           created_at?: string;
           id?: string;
           name: string;
           slug: string;
           status?: string | null;
+          status_source?: string;
+          summary?: string | null;
+          summary_entry_ids?: string[];
+          summary_source?: string;
           user_id: string;
         };
         Update: {
           archived_at?: string | null;
           color?: string;
-          context?: NonNullable<Json>;
           context_updated_at?: string | null;
           created_at?: string;
           id?: string;
           name?: string;
           slug?: string;
           status?: string | null;
+          status_source?: string;
+          summary?: string | null;
+          summary_entry_ids?: string[];
+          summary_source?: string;
           user_id?: string;
         };
         Relationships: [];
@@ -303,6 +357,16 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      apply_context_patch: {
+        Args: {
+          entry_ids?: string[];
+          items?: Json;
+          new_status?: string;
+          new_summary?: string;
+          project_id: string;
+        };
+        Returns: undefined;
+      };
       apply_sorted_capture: {
         Args: { capture_id: string; rows: Json };
         Returns: {

@@ -25,24 +25,22 @@ insert into auth.identities (
   'email', now(), now(), now()
 );
 
-insert into public.projects (user_id, name, slug, color, status, context) values
+insert into public.projects (user_id, name, slug, color, status, summary) values
 (
   '00000000-0000-4000-8000-000000000001',
   'Tamam', 'tamam', '#3FD0B6', 'pilot',
-  '{
-    "summary": "Requests and approvals app for an operations team, running as a pilot.",
-    "stack": ["Next.js", "Supabase"],
-    "decisions": [],
-    "openIdeas": []
-  }'
+  'Requests and approvals app for an operations team, running as a pilot.'
 ),
 (
   '00000000-0000-4000-8000-000000000001',
   'Engram', 'engram', '#B79CFF', 'building',
-  '{
-    "summary": "Self-hosted second brain: capture by voice or text, AI files it into projects.",
-    "stack": ["Next.js", "Supabase", "pgvector", "Vercel AI SDK"],
-    "decisions": [],
-    "openIdeas": []
-  }'
+  'Self-hosted second brain: capture by voice or text, AI files it into projects.'
 );
+
+insert into public.project_context_items (user_id, project_id, section, text, source)
+select p.user_id, p.id, 'stack', s.text, 'ai'
+from public.projects p
+join (values
+  ('tamam', 'Next.js'), ('tamam', 'Supabase'),
+  ('engram', 'Next.js'), ('engram', 'Supabase'), ('engram', 'pgvector'), ('engram', 'Vercel AI SDK')
+) as s(slug, text) on s.slug = p.slug;
