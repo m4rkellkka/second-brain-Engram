@@ -1,6 +1,6 @@
 # Progress
 
-**Current version:** 0.5.0 · **Current phase:** Phase 6 — Search & Ask · status: **not started** (waiting for the plan)
+**Current version:** 0.5.0 · **Current phase:** Phase 6 — being redefined (local mode + Claude connector) · status: **not started**
 
 | Phase | Name                      | Status        |
 | ----- | ------------------------- | ------------- |
@@ -51,10 +51,10 @@
 
 ## Environments
 
-| Env   | Supabase                                                      | Notes                                                                 |
-| ----- | ------------------------------------------------------------- | --------------------------------------------------------------------- |
-| Local | Docker stack, API `127.0.0.1:55321`                           | Migrations + seed via `pnpm db:reset`; mail in Mailpit                |
-| Cloud | Project `engram` (`fsnmuvzztrelevofjkyv`), eu-central-1, Free | Migrations via `pnpm db:push`; auth config via `supabase config push` |
+| Env   | Supabase                                                         | Notes                                                                      |
+| ----- | ---------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| Local | Docker stack, API `127.0.0.1:55321`                              | Migrations + seed via `pnpm db:reset`; mail in Mailpit                     |
+| Cloud | Project `engram` (`fsnmuvzztrelevofjkyv`), **paused 2026-11-04** | Not used any more; restorable for 90 days, then delete it in the dashboard |
 
 ## Decisions
 
@@ -94,6 +94,7 @@
 | 2026-11-04 | Project context stored as rows, not one JSON column                                     | No lost updates between captures, per-item source and provenance, easier for Phase 9                   |
 | 2026-11-04 | Context updates use the same model as sorting (no separate env var)                     | One model setting is enough for now                                                                    |
 | 2026-11-04 | Renaming a project keeps its slug; projects are archived, not deleted                   | Links stay stable; delete can come later                                                               |
+| 2026-11-04 | Engram runs locally only; the cloud Supabase project is paused                          | Mikhail needs the free-plan slot; captures will come from conversations with Claude                    |
 | 2026-11-04 | AI never creates projects; it suggests one on the "not sure" card                       | Avoids a pile of junk projects; creating is one tap                                                    |
 | 2026-11-04 | Capture timezone comes from the browser and is stored on the capture                    | "Friday" resolves correctly, also on retries and when travelling                                       |
 | 2026-11-04 | After 3 failed sorts the thought is kept as a plain note with `needs_review`            | Nothing typed is ever lost                                                                             |
