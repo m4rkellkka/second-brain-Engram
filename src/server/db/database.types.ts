@@ -9,10 +9,65 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      ai_calls: {
+        Row: {
+          cache_read_tokens: number;
+          capture_id: string | null;
+          cost_usd: number;
+          created_at: string;
+          duration_ms: number;
+          id: string;
+          input_tokens: number;
+          model: string;
+          ok: boolean;
+          output_tokens: number;
+          step: string;
+          user_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          cache_read_tokens?: number;
+          capture_id?: string | null;
+          cost_usd?: number;
+          created_at?: string;
+          duration_ms: number;
+          id?: string;
+          input_tokens?: number;
+          model: string;
+          ok: boolean;
+          output_tokens?: number;
+          step: string;
+          user_id: string;
+        };
+        Update: {
+          cache_read_tokens?: number;
+          capture_id?: string | null;
+          cost_usd?: number;
+          created_at?: string;
+          duration_ms?: number;
+          id?: string;
+          input_tokens?: number;
+          model?: string;
+          ok?: boolean;
+          output_tokens?: number;
+          step?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "ai_calls_capture_id_user_id_fkey";
+            columns: ["capture_id", "user_id"];
+            isOneToOne: false;
+            referencedRelation: "captures";
+            referencedColumns: ["id", "user_id"];
+          },
+        ];
+      };
       captures: {
         Row: {
           attempts: number;
           audio_path: string | null;
+          claimed_at: string | null;
           created_at: string;
           error: string | null;
           id: string;
@@ -20,12 +75,14 @@ export type Database = {
           raw_text: string | null;
           source: Database["public"]["Enums"]["capture_source"];
           status: Database["public"]["Enums"]["processing_status"];
+          timezone: string | null;
           user_id: string;
         };
         ComputedFields: never;
         Insert: {
           attempts?: number;
           audio_path?: string | null;
+          claimed_at?: string | null;
           created_at?: string;
           error?: string | null;
           id?: string;
@@ -33,11 +90,13 @@ export type Database = {
           raw_text?: string | null;
           source: Database["public"]["Enums"]["capture_source"];
           status?: Database["public"]["Enums"]["processing_status"];
+          timezone?: string | null;
           user_id: string;
         };
         Update: {
           attempts?: number;
           audio_path?: string | null;
+          claimed_at?: string | null;
           created_at?: string;
           error?: string | null;
           id?: string;
@@ -45,6 +104,7 @@ export type Database = {
           raw_text?: string | null;
           source?: Database["public"]["Enums"]["capture_source"];
           status?: Database["public"]["Enums"]["processing_status"];
+          timezone?: string | null;
           user_id?: string;
         };
         Relationships: [];
@@ -62,6 +122,7 @@ export type Database = {
           kind: Database["public"]["Enums"]["entry_kind"];
           needs_review: boolean;
           project_id: string | null;
+          suggested_project_name: string | null;
           updated_at: string;
           url: string | null;
           user_id: string;
@@ -79,6 +140,7 @@ export type Database = {
           kind: Database["public"]["Enums"]["entry_kind"];
           needs_review?: boolean;
           project_id?: string | null;
+          suggested_project_name?: string | null;
           updated_at?: string;
           url?: string | null;
           user_id: string;
@@ -95,6 +157,7 @@ export type Database = {
           kind?: Database["public"]["Enums"]["entry_kind"];
           needs_review?: boolean;
           project_id?: string | null;
+          suggested_project_name?: string | null;
           updated_at?: string;
           url?: string | null;
           user_id?: string;
@@ -112,6 +175,45 @@ export type Database = {
             columns: ["project_id", "user_id"];
             isOneToOne: false;
             referencedRelation: "projects";
+            referencedColumns: ["id", "user_id"];
+          },
+        ];
+      };
+      entry_corrections: {
+        Row: {
+          created_at: string;
+          entry_id: string;
+          field: string;
+          from_value: string | null;
+          id: string;
+          to_value: string | null;
+          user_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          entry_id: string;
+          field: string;
+          from_value?: string | null;
+          id?: string;
+          to_value?: string | null;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          entry_id?: string;
+          field?: string;
+          from_value?: string | null;
+          id?: string;
+          to_value?: string | null;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "entry_corrections_entry_id_user_id_fkey";
+            columns: ["entry_id", "user_id"];
+            isOneToOne: false;
+            referencedRelation: "entries";
             referencedColumns: ["id", "user_id"];
           },
         ];
@@ -201,8 +303,8 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
-      create_text_capture: {
-        Args: { content: string };
+      apply_sorted_capture: {
+        Args: { capture_id: string; rows: Json };
         Returns: {
           capture_id: string | null;
           confidence: number | null;
@@ -215,13 +317,83 @@ export type Database = {
           kind: Database["public"]["Enums"]["entry_kind"];
           needs_review: boolean;
           project_id: string | null;
+          suggested_project_name: string | null;
           updated_at: string;
           url: string | null;
+          user_id: string;
+        }[];
+        SetofOptions: {
+          from: "*";
+          to: "entries";
+          isOneToOne: false;
+          isSetofReturn: true;
+        };
+      };
+      claim_capture: {
+        Args: { capture_id: string; max_attempts?: number };
+        Returns: {
+          attempts: number;
+          audio_path: string | null;
+          claimed_at: string | null;
+          created_at: string;
+          error: string | null;
+          id: string;
+          processed_at: string | null;
+          raw_text: string | null;
+          source: Database["public"]["Enums"]["capture_source"];
+          status: Database["public"]["Enums"]["processing_status"];
+          timezone: string | null;
           user_id: string;
         };
         SetofOptions: {
           from: "*";
-          to: "entries";
+          to: "captures";
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
+      create_text_capture: {
+        Args: { content: string; timezone?: string };
+        Returns: {
+          attempts: number;
+          audio_path: string | null;
+          claimed_at: string | null;
+          created_at: string;
+          error: string | null;
+          id: string;
+          processed_at: string | null;
+          raw_text: string | null;
+          source: Database["public"]["Enums"]["capture_source"];
+          status: Database["public"]["Enums"]["processing_status"];
+          timezone: string | null;
+          user_id: string;
+        };
+        SetofOptions: {
+          from: "*";
+          to: "captures";
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
+      fail_capture: {
+        Args: { capture_id: string; max_attempts?: number; message: string };
+        Returns: {
+          attempts: number;
+          audio_path: string | null;
+          claimed_at: string | null;
+          created_at: string;
+          error: string | null;
+          id: string;
+          processed_at: string | null;
+          raw_text: string | null;
+          source: Database["public"]["Enums"]["capture_source"];
+          status: Database["public"]["Enums"]["processing_status"];
+          timezone: string | null;
+          user_id: string;
+        };
+        SetofOptions: {
+          from: "*";
+          to: "captures";
           isOneToOne: true;
           isSetofReturn: false;
         };
