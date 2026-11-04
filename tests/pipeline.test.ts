@@ -2,7 +2,6 @@
  * Capture pipeline with a mock model, against the local Supabase stack:
  * claim, sort, write entries, retries, the no-AI fallback and the sweep.
  */
-import { MockLanguageModelV4 } from "ai/test";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { SortedCapture } from "@/server/ai/sort";
 import {
@@ -10,29 +9,9 @@ import {
   sweepCaptures,
 } from "@/server/pipeline/process-capture";
 import { createUser, deleteUsers, type Client } from "./support/local-supabase";
+import { mockAi as mockSort } from "./support/mock-ai";
 
-function mockAi(answer: SortedCapture | Error) {
-  const model = new MockLanguageModelV4({
-    doGenerate: async () => {
-      if (answer instanceof Error) throw answer;
-      return {
-        content: [{ type: "text", text: JSON.stringify(answer) }],
-        finishReason: { unified: "stop", raw: undefined },
-        usage: {
-          inputTokens: {
-            total: 1000,
-            noCache: 1000,
-            cacheRead: undefined,
-            cacheWrite: undefined,
-          },
-          outputTokens: { total: 200, text: 200, reasoning: undefined },
-        },
-        warnings: [],
-      };
-    },
-  });
-  return { model, modelId: "claude-haiku-5-5" };
-}
+const mockAi = (answer: SortedCapture | Error) => mockSort({ sort: answer });
 
 let user: { id: string; client: Client };
 let other: { id: string; client: Client };
@@ -137,7 +116,8 @@ describe("processCapture", () => {
     const { data: calls } = await user.client
       .from("ai_calls")
       .select("model, ok, input_tokens, output_tokens, cost_usd")
-      .eq("capture_id", id);
+      .eq("capture_id", id)
+      .eq("step", "sort");
     expect(calls).toEqual([
       // 1000 × $0.10/M + 200 × $0.50/M
       {
