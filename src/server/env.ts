@@ -27,7 +27,7 @@ const serverEnvSchema = z.object({
   /** Anthropic API key for sorting. Without it captures are kept as plain notes. */
   ANTHROPIC_API_KEY: optional,
   /** Claude model that sorts captures. */
-  AI_SORT_MODEL: z.string().trim().min(1).default("claude-sonnet-5-5"),
+  AI_SORT_MODEL: z.string().trim().min(1).default("claude-haiku-5-5"),
   /** Supabase secret key, used only by the cron retry sweep. */
   SUPABASE_SECRET_KEY: optional,
   /** Bearer token Vercel Cron sends to the retry sweep route. */
