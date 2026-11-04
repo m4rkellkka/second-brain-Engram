@@ -19,9 +19,9 @@
 - [x] `create_text_capture` DB function: one text capture + one note entry, atomic (applied locally and in the cloud)
 - [x] `saveCapture` server action with shared zod schema
 - [x] Tests for the schema and the function
-- [x] Capture screen: textarea focused on open, Save button and ⌘Enter, optimistic "Just saved" list (no mic button until Phase 4). Builds, lint and types pass; **WebKit check still to do** (a second dev server cannot run while one is already running in this folder)
-- [ ] Inbox: latest 50 entries, `?kind=` filter, project picker with inline "+ New project"
-- [ ] Refresh the Inbox on tab/app focus
+- [x] Capture screen: textarea focused on open, Save button and ⌘Enter, optimistic "Just saved" list (no mic button until Phase 4). Checked in WebKit on an iPhone viewport
+- [x] Inbox: latest 50 entries, `?kind=` filter, project picker with inline "+ New project". Checked in WebKit (iPhone + desktop)
+- [x] Refresh the Inbox on tab/app focus
 - [x] PWA: `manifest.ts`, apple-touch-icon via `ImageResponse`, iOS meta, start at `/capture`. Builds; **install on the iPhone still to check**
 - [ ] Move rls/auth tests onto `tests/support/local-supabase.ts`
 - [ ] Release v0.3.0, CHANGELOG, phase report
@@ -60,6 +60,9 @@
 | 2026-11-03 | RLS tests run in CI against a throwaway local stack                                     | Data isolation is checked on every push                                               |
 | 2026-11-03 | Next dev indicator disabled                                                             | It covers the mobile header and tab bar in every corner                               |
 | 2026-11-04 | CI runs only for `chore` head commits on `demo`/`dev`, never on `main`                  | Mikhail's call: fewer CI runs; every commit is checked locally before it is made      |
+| 2026-11-04 | Inbox project picker is a native `<select>`                                             | iOS shows its own wheel, accessible for free, no new dependency                       |
+| 2026-11-04 | New project slugs transliterate Cyrillic (`Жизнь` → `zhizn`)                            | Most project names are Russian; slugs feed project URLs in Phase 5                    |
+| 2026-11-04 | Visual checks run the dev server against the local stack, not the cloud                 | Test captures must not land in Mikhail's real data                                    |
 
 ## Open questions
 
