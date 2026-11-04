@@ -10,6 +10,7 @@ import { after } from "next/server";
 import { sortModel } from "@/server/ai/provider";
 import { createClient } from "@/server/db/server";
 import { sweepCaptures } from "@/server/pipeline/process-capture";
+import { updateProjectContext } from "@/server/pipeline/update-context";
 import {
   assignNewProjectSchema,
   assignProjectSchema,
@@ -22,6 +23,14 @@ export type InboxActionResult = { ok: true } | { ok: false; message: string };
 const MOVE_FAILED = "Couldn't move it. Try again.";
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;
+
+/** After the response: let the entry update its project's live context. */
+function refreshContextLater(projectId: string, entryId: string): void {
+  after(async () => {
+    const db = await createClient();
+    await updateProjectContext(db, projectId, [entryId], sortModel());
+  });
+}
 
 /** Records a manual fix of the AI's sorting; never blocks the fix itself. */
 async function recordCorrection(
@@ -67,6 +76,7 @@ async function setEntryProject(
   if (error || data.length !== 1) return { ok: false, message: MOVE_FAILED };
 
   if (before.project_id !== projectId) {
+    if (projectId) refreshContextLater(projectId, entryId);
     await recordCorrection(supabase, {
       userId: before.user_id,
       entryId,
@@ -164,6 +174,7 @@ export async function confirmEntry(
   if (error || data.length !== 1) {
     return { ok: false, message: "Couldn't save. Try again." };
   }
+  if (data[0].project_id) refreshContextLater(data[0].project_id, parsed.data);
   await recordCorrection(supabase, {
     userId: data[0].user_id,
     entryId: parsed.data,

@@ -1,9 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Json } from "@/server/db/database.types";
-import { costUsd, tokenCounts } from "@/server/ai/pricing";
 import type { SortModel } from "@/server/ai/provider";
 import { sortCapture, type SortProject } from "@/server/ai/sort";
 import { toEntryRows, type EntryRow } from "./entry-rows";
+import { logAiCall } from "./log-call";
+import { updateProjectContext } from "./update-context";
 
 type Db = SupabaseClient<Database>;
 
@@ -15,17 +16,9 @@ const STALE_CLAIM_MS = 5 * 60_000;
 
 export type ProcessOutcome = "processed" | "failed" | "skipped";
 
-function contextSummary(context: Json): string | null {
-  if (context && typeof context === "object" && !Array.isArray(context)) {
-    const summary = context.summary;
-    return typeof summary === "string" && summary.trim() ? summary : null;
-  }
-  return null;
-}
-
 /**
- * Pipeline steps 1, 3, 4 and 7 for one capture: claim it, sort it with the
- * model, write the entries, mark it processed. Without a model (no API key)
+ * Pipeline steps 1, 3, 4, 6 and 7 for one capture: claim it, sort it with
+ * the model, write the entries, update the touched projects' context. Without a model (no API key)
  * the text is kept as a plain note, as before AI sorting.
  */
 export async function processCapture(
@@ -60,7 +53,7 @@ export async function processCapture(
     } else {
       const { data: projects, error } = await db
         .from("projects")
-        .select("id, slug, name, context")
+        .select("id, slug, name, summary")
         .is("archived_at", null)
         .order("name");
       if (error) throw new Error(`Couldn't load projects: ${error.message}`);
@@ -68,10 +61,16 @@ export async function processCapture(
       const forModel: SortProject[] = projects.map((p) => ({
         slug: p.slug,
         name: p.name,
-        summary: contextSummary(p.context),
+        summary: p.summary,
       }));
 
       modelCalled = true;
+      const log = {
+        userId: capture.user_id,
+        captureId: capture.id,
+        step: "sort" as const,
+        modelId: ai.modelId,
+      };
       const started = Date.now();
       try {
         const result = await sortCapture({
@@ -81,26 +80,42 @@ export async function processCapture(
           now,
           timeZone: capture.timezone,
         });
-        await logCall(
-          db,
-          capture,
-          ai.modelId,
-          result.durationMs,
-          true,
-          result.usage,
-        );
+        await logAiCall(db, {
+          ...log,
+          durationMs: result.durationMs,
+          ok: true,
+          usage: result.usage,
+        });
         rows = toEntryRows(result.output, projects, text);
       } catch (error) {
-        await logCall(db, capture, ai.modelId, Date.now() - started, false);
+        await logAiCall(db, {
+          ...log,
+          durationMs: Date.now() - started,
+          ok: false,
+        });
         throw error;
       }
     }
 
-    const { error } = await db.rpc("apply_sorted_capture", {
+    const { data: saved, error } = await db.rpc("apply_sorted_capture", {
       capture_id: capture.id,
       rows: rows as unknown as Json,
     });
     if (error) throw new Error(`Couldn't save entries: ${error.message}`);
+
+    // Step 6: confident entries update their project's live context.
+    // Entries waiting for review wait until the user confirms them.
+    const byProject = new Map<string, string[]>();
+    for (const entry of saved ?? []) {
+      if (!entry.project_id || entry.needs_review) continue;
+      byProject.set(entry.project_id, [
+        ...(byProject.get(entry.project_id) ?? []),
+        entry.id,
+      ]);
+    }
+    for (const [projectId, entryIds] of byProject) {
+      await updateProjectContext(db, projectId, entryIds, ai, capture.id);
+    }
     return "processed";
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -116,46 +131,6 @@ export async function processCapture(
     });
     return "failed";
   }
-}
-
-async function logCall(
-  db: Db,
-  capture: { id: string; user_id: string },
-  modelId: string,
-  durationMs: number,
-  ok: boolean,
-  usage?: Parameters<typeof tokenCounts>[0],
-): Promise<void> {
-  const tokens = usage
-    ? tokenCounts(usage)
-    : {
-        inputTokens: 0,
-        outputTokens: 0,
-        cacheReadTokens: 0,
-        cacheWriteTokens: 0,
-      };
-  const cost = costUsd(modelId, tokens);
-  const { error } = await db.from("ai_calls").insert({
-    user_id: capture.user_id,
-    capture_id: capture.id,
-    step: "sort",
-    model: modelId,
-    input_tokens: tokens.inputTokens,
-    output_tokens: tokens.outputTokens,
-    cache_read_tokens: tokens.cacheReadTokens,
-    cost_usd: cost,
-    duration_ms: Math.round(durationMs),
-    ok,
-  });
-  // Logging must never break sorting.
-  if (error) console.error("[pipeline] couldn't log AI call", error.message);
-  console.info("[ai] sort", {
-    modelId,
-    ok,
-    durationMs,
-    ...tokens,
-    costUsd: cost,
-  });
 }
 
 /**
