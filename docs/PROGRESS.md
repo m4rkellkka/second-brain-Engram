@@ -1,13 +1,13 @@
 # Progress
 
-**Current version:** 0.3.0 · **Current phase:** Phase 3 — AI sorting · status: **not started** (waiting for the plan)
+**Current version:** 0.3.0 · **Current phase:** Phase 3 — AI sorting · status: **in progress** (code done, waiting on real-model checks)
 
 | Phase | Name                      | Status        |
 | ----- | ------------------------- | ------------- |
 | 0     | Foundation                | done (v0.1.0) |
 | 1     | Auth & data model         | done (v0.2.1) |
 | 2     | Text capture, Inbox & PWA | done (v0.3.0) |
-| 3     | AI sorting                | —             |
+| 3     | AI sorting                | in progress   |
 | 4     | Voice capture             | —             |
 | 5     | Projects & live context   | —             |
 | 6     | Search & Ask              | —             |
@@ -26,6 +26,20 @@
 - [x] PWA: `manifest.ts`, apple-touch-icon via `ImageResponse`, iOS meta, start at `/capture`. Installed and used on Mikhail's iPhone
 - [x] Move rls/auth tests onto `tests/support/local-supabase.ts`
 - [x] Release v0.3.0, CHANGELOG, phase report
+
+## Phase 3 checklist (approved plan)
+
+- [x] Migration: pending captures with time zone, `claim_capture`, `apply_sorted_capture`, `fail_capture`, `ai_calls`, `entry_corrections` (local only; **cloud push waits for Mikhail**: `pnpm db:push`)
+- [x] Provider layer on the Vercel AI SDK + `@ai-sdk/anthropic`; `AI_SORT_MODEL` (default Sonnet 5.5), effort low
+- [x] Sort step with structured output; projects, local time and time zone in the prompt
+- [x] Pipeline in `after()`: claim → sort → entries → processed; failures retried, note kept after 3 attempts; no API key → plain note
+- [x] Retry sweep after each save and from the Inbox; daily Vercel Cron route as a backstop
+- [x] Inbox: "Sorting" cards with polling, "not sure" cards, kind select, due date and link chips; corrections saved
+- [x] Token usage and cost logged per call in `ai_calls`
+- [x] Tests: pipeline with a mock model against the local stack, row mapping, cost; WebKit check of the Inbox
+- [x] `pnpm eval:sort` with an example fixture set
+- [ ] Run the eval on 20 real captures (needs `ANTHROPIC_API_KEY` and the fixtures) and measure cost per capture
+- [ ] Release v0.4.0, CHANGELOG, phase report
 
 ## Environments
 
