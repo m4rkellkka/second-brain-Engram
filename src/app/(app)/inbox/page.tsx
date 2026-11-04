@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { InboxFeed, InboxFeedSkeleton } from "@/features/inbox/inbox-feed";
+import { RefreshOnFocus } from "@/features/inbox/refresh-on-focus";
 
 export const metadata: Metadata = { title: "Inbox" };
 
@@ -12,6 +13,7 @@ export default function InboxPage({ searchParams }: PageProps<"/inbox">) {
       <Suspense fallback={<InboxFeedSkeleton />}>
         <InboxFeed searchParams={searchParams} />
       </Suspense>
+      <RefreshOnFocus />
     </div>
   );
 }
