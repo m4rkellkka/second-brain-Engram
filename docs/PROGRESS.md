@@ -67,10 +67,15 @@
 | 2026-11-04 | Cloud account recreated (old one deleted, new one made in the dashboard)                | Old password was lost; cascade removed the old data, allow-list updated, sign-up still closed |
 | 2026-11-04 | Default LLM provider: Claude API (Anthropic) via the Vercel AI SDK                      | Mikhail's call; provider and models stay configurable via env                                 |
 | 2026-11-04 | New Phase 9: Claude connector (MCP), after the MVP, before 1.0.0                        | Mikhail wants to talk with Claude in its app and say "save this to Engram"                    |
+| 2026-11-04 | Phase 3 sorting: Sonnet 5.5 in the app, Haiku 5.5 for dev eval runs                     | Mikhail wants sorting to be right; Haiku keeps repeated test runs cheap                       |
+| 2026-11-04 | AI never creates projects; it suggests one on the "not sure" card                       | Avoids a pile of junk projects; creating is one tap                                           |
+| 2026-11-04 | Capture timezone comes from the browser and is stored on the capture                    | "Friday" resolves correctly, also on retries and when travelling                              |
+| 2026-11-04 | After 3 failed sorts the thought is kept as a plain note with `needs_review`            | Nothing typed is ever lost                                                                    |
 
 ## Open questions
 
 - [ ] Is "Engram" free on GitHub, npm and a domain?
+- [ ] 20 real captures with the right project for the Phase 3 eval (Mikhail, later; can be drafted from his own Inbox once he has used it for a few days)
 
 ## TODO (known gaps)
 
@@ -80,6 +85,7 @@
 
 ## Ideas for later
 
+- **Diary mode** (Mikhail, 2026-11-04): talk with Claude about how the day went and it saves a journal entry. Fits the Phase 9 connector (`save_to_engram` with a journal flavour); may need a `journal` entry kind
 - Today screen, reminders, iOS Shortcut capture, Obsidian import
 - Sidebar extras from the mockups: projects list with counts, top "Ask your brain" search with ⌘K (need data first)
 - Desktop quick-capture shortcut (⌘⇧Space in the mockups)
