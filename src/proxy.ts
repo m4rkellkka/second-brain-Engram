@@ -2,8 +2,8 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { env } from "@/lib/env";
 
-/** Routes that work without a session. */
-const PUBLIC_PATHS = ["/login"];
+/** Routes that work without a session. The cron route checks its own secret. */
+const PUBLIC_PATHS = ["/login", "/api/cron"];
 
 function isPublic(pathname: string): boolean {
   return PUBLIC_PATHS.some(
