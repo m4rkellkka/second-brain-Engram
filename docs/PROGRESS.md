@@ -1,6 +1,6 @@
 # Progress
 
-**Current version:** 0.4.0 · **Current phase:** Phase 5 — Projects & live context · status: **not started** (waiting for the plan)
+**Current version:** 0.5.0 · **Current phase:** Phase 6 — Search & Ask · status: **not started** (waiting for the plan)
 
 | Phase | Name                      | Status        |
 | ----- | ------------------------- | ------------- |
@@ -9,7 +9,7 @@
 | 2     | Text capture, Inbox & PWA | done (v0.3.0) |
 | 3     | AI sorting                | done (v0.4.0) |
 | 4     | Voice capture             | dropped       |
-| 5     | Projects & live context   | —             |
+| 5     | Projects & live context   | done (v0.5.0) |
 | 6     | Search & Ask              | —             |
 | 7     | Brain graph               | —             |
 | 8     | Open-source launch        | —             |
@@ -40,6 +40,14 @@
 - [x] `pnpm eval:sort` with an example fixture set
 - [x] Eval on the 5 example captures with Haiku 5.5: 5/5 right, $0.00018 and ~1.8 s per capture. The 20 real captures are still open (see Open questions)
 - [x] Release v0.4.0, CHANGELOG, phase report
+
+## Phase 5 checklist (done)
+
+- [x] Context as rows (`project_context_items`), summary and status with a source; old JSON migrated; `apply_context_patch` (local; **cloud push waits for Mikhail**: `pnpm db:push`)
+- [x] Context updater (pipeline step 6) on Haiku: small patch, append-only, hand edits win; also runs after a manual fix in the Inbox
+- [x] Projects list and project page: summary, status, stack, decisions, open ideas with sources, tasks with checkboxes
+- [x] Create, rename, recolor, archive
+- [x] Tests: patch cleaning, user-edit rules, RLS, updater with a mock model; WebKit check of list and page
 
 ## Environments
 
@@ -83,6 +91,9 @@
 | 2026-11-04 | New Phase 9: Claude connector (MCP), after the MVP, before 1.0.0                        | Mikhail wants to talk with Claude in its app and say "save this to Engram"                             |
 | 2026-11-04 | Phase 3 sorting on Claude Haiku 5.5 in the app and in evals (Sonnet 5.5 via env)        | Mikhail's call: Sonnet costs ~20x more; Haiku got 5/5 on the example set                               |
 | 2026-11-04 | Phase 4 (voice capture) dropped; releases numbered in order (Phase 5 → 0.5.0)           | No second AI provider just for speech; keyboard dictation and the Phase 9 Claude connector cover voice |
+| 2026-11-04 | Project context stored as rows, not one JSON column                                     | No lost updates between captures, per-item source and provenance, easier for Phase 9                   |
+| 2026-11-04 | Context updates use the same model as sorting (no separate env var)                     | One model setting is enough for now                                                                    |
+| 2026-11-04 | Renaming a project keeps its slug; projects are archived, not deleted                   | Links stay stable; delete can come later                                                               |
 | 2026-11-04 | AI never creates projects; it suggests one on the "not sure" card                       | Avoids a pile of junk projects; creating is one tap                                                    |
 | 2026-11-04 | Capture timezone comes from the browser and is stored on the capture                    | "Friday" resolves correctly, also on retries and when travelling                                       |
 | 2026-11-04 | After 3 failed sorts the thought is kept as a plain note with `needs_review`            | Nothing typed is ever lost                                                                             |
@@ -95,7 +106,7 @@
 ## TODO (known gaps)
 
 - [ ] **Service worker** (spec: PWA = manifest + service worker). Skipped in Phase 2: iOS installs the PWA without it and offline sync is out of the MVP. Add it with a cache strategy that never serves another session's data.
-- [ ] **Inline "+ New project" in the Inbox project picker** is a stopgap from Phase 2. Replace it with proper project management in Phase 5 (create, rename, colors, archive).
+- [x] ~~Inline "+ New project" in the Inbox picker~~: kept as a shortcut; full project management shipped in Phase 5
 - [ ] **Realtime Inbox.** Phase 2 refreshes on tab/app focus only: if the laptop window already has focus, a thought saved on the phone shows up only after switching away and back, or a reload (Mikhail noticed this in the Phase 2 check). Options: Supabase Realtime, or a light poll while the page is visible. Not needed now (Mikhail, 2026-11-04); revisit later if switching windows gets annoying.
 
 ## Ideas for later

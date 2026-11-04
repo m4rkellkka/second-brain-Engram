@@ -95,7 +95,9 @@ create table projects (
   slug text not null,
   color text not null,
   status text,
-  context jsonb not null default '{}'::jsonb,  -- { summary, stack[], decisions[], openIdeas[] }
+  summary text,                  -- live context, see Project context below
+  summary_source text not null default 'ai', -- 'ai' | 'user'
+  status_source text not null default 'ai',  -- 'ai' | 'user'
   context_updated_at timestamptz,
   archived_at timestamptz,
   created_at timestamptz not null default now(),
@@ -141,6 +143,8 @@ create table entry_links (
   primary key (source_id, target_id)
 );
 ```
+
+**Project context** (changed in Phase 5 from one JSON column). Stack, decisions and open ideas are rows in `project_context_items (project_id, section, text, source, entry_ids)`, so concurrent captures never overwrite each other, every item knows whether the AI or the user wrote it, and it keeps the entries it came from. A unique index on the lowercased text per section blocks duplicates. A summary or status the user writes has `source = 'user'` and the AI never replaces it.
 
 **Indexes.** `entries (user_id, created_at desc)` for the Inbox, `entries (project_id)`, an HNSW index on `entries.embedding` with `vector_cosine_ops`, a partial index on `captures (created_at) where status in ('pending', 'failed')` for the retry sweep, and a full-text index on `entries.content` for hybrid search.
 
