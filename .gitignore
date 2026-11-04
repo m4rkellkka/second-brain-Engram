@@ -35,3 +35,6 @@ supabase/.temp
 *.pem
 npm-debug.log*
 .pnpm-debug.log*
+
+# Private eval fixtures (real captures)
+evals/fixtures/*.local.json

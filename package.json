@@ -16,7 +16,8 @@
     "db:reset": "supabase db reset",
     "db:push": "supabase db push --remote",
     "db:types": "supabase gen types typescript --local --schema public > src/server/db/database.types.ts && prettier --write --ignore-path .gitignore src/server/db/database.types.ts",
-    "test": "vitest run"
+    "test": "vitest run",
+    "eval:sort": "node --env-file-if-exists=.env.local node_modules/vitest/vitest.mjs run --config vitest.eval.config.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^4.0.96",
