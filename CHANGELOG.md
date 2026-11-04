@@ -6,6 +6,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-04
+
+### Added
+
+- AI sorting: after a capture is saved, Claude splits it into entries and sets kind, project, due date, link and confidence. It runs after the response, so saving stays instant. Default model Claude Haiku 5.5 (`AI_SORT_MODEL`), about $0.0002 per capture.
+- "Sorting" cards in the Inbox for captures still being sorted; the Inbox refreshes itself until they are done.
+- "Not sure" cards for entries with low confidence or no project: "Looks right", one tap to create a suggested project, or pick one.
+- The type of an entry can be changed from its card; due dates and links show on the card.
+- Corrections (project, type, confirm) are stored for later use as examples.
+- Every model call is logged with tokens, cost and duration (`ai_calls`).
+- Retries: up to 3 attempts per capture, run after each save, from the Inbox and from a daily Vercel Cron route. After the last failure the text is kept as a note to review.
+- `pnpm eval:sort` checks sorting accuracy and cost against fixture captures.
+
+### Changed
+
+- Saving a capture no longer creates the entry directly; the sorting pipeline does. Without `ANTHROPIC_API_KEY` captures are kept as plain notes, as before.
+
 ## [0.3.0] - 2026-11-04
 
 ### Added
@@ -68,7 +85,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GitHub Actions CI: lint, format check, typecheck and build.
 - MIT license.
 
-[Unreleased]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.1.0...v0.2.0
