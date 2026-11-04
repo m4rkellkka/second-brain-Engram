@@ -1,5 +1,6 @@
 /**
  * Text capture: input validation and the `create_text_capture` function.
+ * Sorting into entries is covered in pipeline.test.ts.
  * The database part runs against the local Supabase stack.
  */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -35,42 +36,36 @@ describe("create_text_capture", () => {
   });
   afterAll(() => deleteUsers([user?.id, other?.id]));
 
-  it("creates one processed text capture and one note entry for the caller", async () => {
-    const { data: entry, error } = await user.client.rpc(
+  it("saves a pending text capture for the caller, without entries yet", async () => {
+    const { data: capture, error } = await user.client.rpc(
       "create_text_capture",
-      {
-        content: "  remember the milk  ",
-      },
+      { content: "  remember the milk  ", timezone: "Europe/Istanbul" },
     );
     expect(error).toBeNull();
-    expect(entry).toMatchObject({
-      user_id: user.id,
-      kind: "note",
-      content: "remember the milk",
-      project_id: null,
-    });
-
-    const { data: capture } = await user.client
-      .from("captures")
-      .select("user_id, source, raw_text, status")
-      .eq("id", entry!.capture_id!)
-      .single();
-    expect(capture).toEqual({
+    expect(capture).toMatchObject({
       user_id: user.id,
       source: "text",
       raw_text: "remember the milk",
-      status: "processed",
+      status: "pending",
+      attempts: 0,
+      timezone: "Europe/Istanbul",
     });
+
+    const { data: entries } = await user.client
+      .from("entries")
+      .select("id")
+      .eq("capture_id", capture!.id);
+    expect(entries).toEqual([]);
   });
 
   it("is invisible to another user", async () => {
-    const { data: entry } = await user.client.rpc("create_text_capture", {
+    const { data: capture } = await user.client.rpc("create_text_capture", {
       content: "private",
     });
     const { data } = await other.client
-      .from("entries")
+      .from("captures")
       .select("id")
-      .eq("id", entry!.id);
+      .eq("id", capture!.id);
     expect(data).toEqual([]);
   });
 
@@ -86,5 +81,14 @@ describe("create_text_capture", () => {
       content: "anonymous",
     });
     expect(error).not.toBeNull();
+  });
+});
+
+describe("timeZoneSchema", () => {
+  it("accepts IANA zones and rejects junk", async () => {
+    const { timeZoneSchema } = await import("@/features/capture/schema");
+    expect(timeZoneSchema.safeParse("Europe/Istanbul").success).toBe(true);
+    expect(timeZoneSchema.safeParse("Mars/Olympus").success).toBe(false);
+    expect(timeZoneSchema.safeParse("").success).toBe(false);
   });
 });
