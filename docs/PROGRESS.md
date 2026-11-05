@@ -1,6 +1,6 @@
 # Progress
 
-**Current version:** 0.9.0 · **Current phase:** Phase 10 — Open-source launch · status: **not started**
+**Current version:** 0.9.1 · **Current phase:** Phase 10 — Open-source launch · status: **not started**
 
 Engram was rebuilt as a native macOS app on 2026-11-05 (see `docs/SPEC.md`). Phases 0–5 shipped the Next.js + Supabase web app, kept on the `web-archive` branch.
 
@@ -60,6 +60,11 @@ Engram was rebuilt as a native macOS app on 2026-11-05 (see `docs/SPEC.md`). Pha
 - [x] Legend, empty state, live updates; debug fps counter and picking markers
 - [x] `make demo-graph`: 2,000 entries and 2,858 links at 60 fps on the MacBook (screenshot in docs/images/brain.png)
 - [x] 78 tests; CHANGELOG, README, release v0.9.0
+
+## Phase 9 follow-up (v0.9.1, Mikhail's feedback)
+
+- [x] `update_project` and `complete_task` tools: in a real chat Claude couldn't update a page or tick a task
+- [x] Graph redrawn with Metal ("synapses"): glow, depth fog, link-sized dots, labels, pulses, flashes, hover highlight, focus + side panel; 60 fps on 2,000 entries
 
 ## Environments
 
@@ -138,6 +143,9 @@ Rows before 2026-11-05 describe the web app (now on the `web-archive` branch).
 | 2026-11-05 | RealityKit for the graph, with a dozen merged meshes and our own picking                 | SceneKit is deprecated; per-entity rendering wouldn't scale to 2,000 dots                              |
 | 2026-11-05 | Fixed, deterministic layout instead of a live physics simulation                         | Same picture every launch; the slow rotation gives the "alive" feel                                     |
 | 2026-11-05 | Entries of archived projects stay out of the graph                                       | The graph shows what is active                                                                         |
+| 2026-11-05 | Graph moved from RealityKit to a small Metal renderer (v0.9.1)                           | Mikhail found it flat; glow, fog and dashes need custom shaders                                        |
+| 2026-11-05 | Shaders compile at launch from source, and a test compiles them                          | No Metal toolchain download needed to build; a shader typo can't ship silently                         |
+| 2026-11-05 | Dedicated `update_project` and `complete_task` tools                                     | Claude didn't discover `contextUpdates` inside `save_to_engram` in a real chat                          |
 
 ## Open questions
 

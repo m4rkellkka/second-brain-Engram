@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version" src="https://img.shields.io/badge/version-0.9.0-8B9CFF">
+  <img alt="Version" src="https://img.shields.io/badge/version-0.9.1-8B9CFF">
   <img alt="Status" src="https://img.shields.io/badge/status-in%20development-F2A65A">
   <img alt="License" src="https://img.shields.io/badge/license-MIT-3FD0B6">
   <img alt="Platform" src="https://img.shields.io/badge/macOS-15%2B-EDEDF0">
@@ -91,7 +91,7 @@ docs/                   spec and progress log
 
 ## Stack
 
-Swift 6, SwiftUI with small AppKit bridges, RealityKit for the graph, SQLite through [GRDB](https://github.com/groue/GRDB.swift) (WAL, FTS5), the [MCP Swift SDK](https://github.com/modelcontextprotocol/swift-sdk), Geist fonts, Swift Testing.
+Swift 6, SwiftUI with small AppKit bridges, Metal for the graph, SQLite through [GRDB](https://github.com/groue/GRDB.swift) (WAL, FTS5), the [MCP Swift SDK](https://github.com/modelcontextprotocol/swift-sdk), Geist fonts, Swift Testing.
 
 ## License
 

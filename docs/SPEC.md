@@ -61,7 +61,7 @@ flowchart LR
 | Storage      | SQLite via GRDB.swift, WAL mode                         | Explicit migrations, FTS5 full-text search, safe access from two processes   |
 | Connector    | MCP Swift SDK (`modelcontextprotocol/swift-sdk`), stdio | Official SDK; stdio needs no ports, tokens or network                        |
 | Search       | SQLite FTS5 (`unicode61`, prefix search)                | Works for mixed Russian and English, no embeddings and no second AI provider |
-| 3D graph      | RealityKit (`RealityView`), merged meshes                | SceneKit is deprecated since 2025; a dozen merged meshes keep 2,000 nodes at 60 fps |
+| 3D graph      | Metal (instanced sprites and lines, additive glow)       | Glow, depth fog and dashes that RealityKit on macOS 15 can't do; 60 fps on 2,000 entries |
 | Tests        | Swift Testing in EngramKit                              | Test where bugs live: save rules, context rules, search, MCP input checks    |
 | Distribution | GitHub Releases: zipped or DMG `.app`, ad-hoc signed    | No paid Apple Developer account needed; install steps documented             |
 
@@ -171,6 +171,8 @@ create virtual table entries_fts using fts5(
 | `get_project_context` | One project's summary, status, open tasks and recent entries; stack, decisions and ideas from Phase 8 |
 | `search_entries`      | Full-text search with optional project and kind filters, newest first on ties                                                                                                                     |
 | `list_tasks`          | Open tasks, optionally per project or due before a date                                                                                                                                           |
+| `update_project`      | Update a project page (summary, status, stack, decisions, ideas) without new entries |
+| `complete_task`       | Tick or untick a task by id |
 | `list_unsorted`       | Typed thoughts waiting to be sorted                                                                                                                                                               |
 | `sort_capture`        | File one unsorted capture, with the same entry shape as `save_to_engram`                                                                                                                          |
 
