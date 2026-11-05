@@ -8,7 +8,7 @@ extension AppDatabase {
   public static func fetchInbox(
     _ db: Database, kind: EntryKind? = nil, limit: Int = inboxLimit
   ) throws -> [InboxItem] {
-    var request = Entry.including(optional: Entry.project)
+    var request = Entry.including(optional: Entry.project).including(optional: Entry.capture)
     if let kind { request = request.filter(Column("kind") == kind) }
     return
       try request

@@ -18,7 +18,11 @@ public final class AppDatabase: Sendable {
   public static func open(at url: URL) throws -> AppDatabase {
     try FileManager.default.createDirectory(
       at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
-    return try AppDatabase(DatabasePool(path: url.path))
+    var configuration = Configuration()
+    // The app and the connector may write at the same moment; wait instead
+    // of failing with "database is locked".
+    configuration.busyMode = .timeout(5)
+    return try AppDatabase(DatabasePool(path: url.path, configuration: configuration))
   }
 
   /// `~/Library/Application Support/Engram/engram.sqlite`.

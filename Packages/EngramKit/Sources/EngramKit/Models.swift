@@ -63,6 +63,7 @@ public struct Capture: EngramRecord, Identifiable, Hashable, Sendable {
 public struct Entry: EngramRecord, Identifiable, Hashable, Sendable {
   public static let databaseTableName = "entries"
   static let project = belongsTo(Project.self)
+  static let capture = belongsTo(Capture.self)
 
   public var id: String
   public var captureId: String?
@@ -75,14 +76,16 @@ public struct Entry: EngramRecord, Identifiable, Hashable, Sendable {
   public var doneAt: Date?
   public var confidence: Double?
   public var needsReview: Bool
+  public var suggestedProject: String?
   public var createdAt: Date
   public var updatedAt: Date
 }
 
-/// One Inbox row: an entry and the project it is filed in, if any.
+/// One Inbox row: an entry, the project it is filed in and where it came from.
 public struct InboxItem: Decodable, FetchableRecord, Identifiable, Hashable, Sendable {
   public var entry: Entry
   public var project: Project?
+  public var capture: Capture?
   public var id: String { entry.id }
 }
 

@@ -24,7 +24,7 @@ extension AppDatabase {
     let entry = Entry(
       id: newID(), captureId: capture.id, projectId: nil, kind: .note, content: text,
       keywords: nil, url: nil, dueAt: nil, doneAt: nil, confidence: nil, needsReview: false,
-      createdAt: now, updatedAt: now)
+      suggestedProject: nil, createdAt: now, updatedAt: now)
 
     try writer.write { db in
       try capture.insert(db)

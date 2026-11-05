@@ -99,6 +99,50 @@ extension AppDatabase {
       }
     }
 
+    migrator.registerMigration("v2") { db in
+      // The project name Claude proposes when no existing project fits, so
+      // the "not sure" card can create it in one click.
+      try db.execute(sql: "alter table entries add column suggested_project text")
+
+      // Rebuild the search index with its own normalized copy of the text:
+      // the unicode61 tokenizer keeps "ё" apart from "е", but people type
+      // both, so the index (and every query) folds "ё" into "е".
+      try db.execute(
+        sql: """
+          drop trigger if exists __entries_fts_ai;
+          drop trigger if exists __entries_fts_ad;
+          drop trigger if exists __entries_fts_au;
+          drop table entries_fts;
+
+          create virtual table entries_fts using fts5(
+            content, keywords, tokenize = 'unicode61 remove_diacritics 2'
+          );
+
+          create trigger entries_fts_insert after insert on entries begin
+            insert into entries_fts (rowid, content, keywords) values (
+              new.rowid,
+              replace(replace(new.content, 'ё', 'е'), 'Ё', 'Е'),
+              replace(replace(coalesce(new.keywords, ''), 'ё', 'е'), 'Ё', 'Е'));
+          end;
+          create trigger entries_fts_delete after delete on entries begin
+            delete from entries_fts where rowid = old.rowid;
+          end;
+          create trigger entries_fts_update after update of content, keywords on entries begin
+            delete from entries_fts where rowid = old.rowid;
+            insert into entries_fts (rowid, content, keywords) values (
+              new.rowid,
+              replace(replace(new.content, 'ё', 'е'), 'Ё', 'Е'),
+              replace(replace(coalesce(new.keywords, ''), 'ё', 'е'), 'Ё', 'Е'));
+          end;
+
+          insert into entries_fts (rowid, content, keywords)
+            select rowid,
+              replace(replace(content, 'ё', 'е'), 'Ё', 'Е'),
+              replace(replace(coalesce(keywords, ''), 'ё', 'е'), 'Ё', 'Е')
+            from entries;
+          """)
+    }
+
     return migrator
   }
 }
