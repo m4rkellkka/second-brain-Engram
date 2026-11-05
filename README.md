@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version" src="https://img.shields.io/badge/version-0.8.0-8B9CFF">
+  <img alt="Version" src="https://img.shields.io/badge/version-0.9.0-8B9CFF">
   <img alt="Status" src="https://img.shields.io/badge/status-in%20development-F2A65A">
   <img alt="License" src="https://img.shields.io/badge/license-MIT-3FD0B6">
   <img alt="Platform" src="https://img.shields.io/badge/macOS-15%2B-EDEDF0">
@@ -15,14 +15,14 @@
 </p>
 
 <p align="center">
-  <img alt="The Engram Inbox" src="docs/images/inbox.png" width="760">
+  <img alt="The Engram brain graph" src="docs/images/brain.png" width="760">
 </p>
 
 ---
 
 > **Work in progress.** Engram is being built in public, one phase at a time.
 > Today: capture from the menu bar, an Inbox, search, a Claude Desktop connector that
-> saves your conversations, and project pages that keep themselves up to date. The 3D graph is next.
+> saves your conversations, project pages that keep themselves up to date, and a 3D graph of it all.
 
 ## Why
 
@@ -42,7 +42,7 @@ your projects. Manual systems fail because filing is work and the payoff comes l
 | 6     | Native foundation: menu-bar capture, Inbox, projects    | ✅ v0.6.0 |
 | 7     | Claude connector (MCP) and search                       | ✅ v0.7.0 |
 | 8     | Projects with live context                              | ✅ v0.8.0 |
-| 9     | Brain graph (3D)                                        | ⏳        |
+| 9     | Brain graph (3D)                                        | ✅ v0.9.0 |
 | 10    | Open-source launch: releases, export, install guide     | ⏳        |
 
 See [CHANGELOG.md](CHANGELOG.md) for what each release contains.
@@ -73,6 +73,7 @@ Engram adds itself to `~/Library/Application Support/Claude/claude_desktop_confi
 | `make run`    | Build and open the app                         |
 | `make test`   | Tests for `EngramKit` (Swift Testing)          |
 | `make lint`   | `swift format lint --strict`                   |
+| `make demo-graph` | Open the graph on 2,000 synthetic entries (performance check) |
 | `make eval-connector` | Save 10 sample chats through the connector with the real Claude (needs the `claude` CLI) |
 | `make format` | Format all Swift sources                       |
 | `make clean`  | Remove build output                            |
@@ -90,7 +91,7 @@ docs/                   spec and progress log
 
 ## Stack
 
-Swift 6, SwiftUI with small AppKit bridges, SQLite through [GRDB](https://github.com/groue/GRDB.swift) (WAL, FTS5), the [MCP Swift SDK](https://github.com/modelcontextprotocol/swift-sdk), Geist fonts, Swift Testing.
+Swift 6, SwiftUI with small AppKit bridges, RealityKit for the graph, SQLite through [GRDB](https://github.com/groue/GRDB.swift) (WAL, FTS5), the [MCP Swift SDK](https://github.com/modelcontextprotocol/swift-sdk), Geist fonts, Swift Testing.
 
 ## License
 

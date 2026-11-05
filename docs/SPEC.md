@@ -61,7 +61,7 @@ flowchart LR
 | Storage      | SQLite via GRDB.swift, WAL mode                         | Explicit migrations, FTS5 full-text search, safe access from two processes   |
 | Connector    | MCP Swift SDK (`modelcontextprotocol/swift-sdk`), stdio | Official SDK; stdio needs no ports, tokens or network                        |
 | Search       | SQLite FTS5 (`unicode61`, prefix search)                | Works for mixed Russian and English, no embeddings and no second AI provider |
-| 3D graph     | SceneKit or RealityKit (decided in its phase)           | Native GPU rendering, no web view                                            |
+| 3D graph      | RealityKit (`RealityView`), merged meshes                | SceneKit is deprecated since 2025; a dozen merged meshes keep 2,000 nodes at 60 fps |
 | Tests        | Swift Testing in EngramKit                              | Test where bugs live: save rules, context rules, search, MCP input checks    |
 | Distribution | GitHub Releases: zipped or DMG `.app`, ad-hoc signed    | No paid Apple Developer account needed; install steps documented             |
 
@@ -244,7 +244,7 @@ Done when:
 
 Goal: the 3D graph from the mockup, on real data.
 
-- Pick SceneKit vs RealityKit with a short comparison first
+- Pick SceneKit vs RealityKit with a short comparison first (chosen: RealityKit, since SceneKit is deprecated)
 - Nodes = entries, clusters = projects, edges = project membership + keyword links
 - Auto-rotate, drag, zoom, hover label, click opens the project
 

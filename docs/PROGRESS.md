@@ -1,6 +1,6 @@
 # Progress
 
-**Current version:** 0.8.0 · **Current phase:** Phase 9 — Brain graph · status: **not started**
+**Current version:** 0.9.0 · **Current phase:** Phase 10 — Open-source launch · status: **not started**
 
 Engram was rebuilt as a native macOS app on 2026-11-05 (see `docs/SPEC.md`). Phases 0–5 shipped the Next.js + Supabase web app, kept on the `web-archive` branch.
 
@@ -10,7 +10,7 @@ Engram was rebuilt as a native macOS app on 2026-11-05 (see `docs/SPEC.md`). Pha
 | 6     | Native foundation            | done (v0.6.0)          |
 | 7     | Claude connector + search    | done (v0.7.0)          |
 | 8     | Projects & live context      | done (v0.8.0)          |
-| 9     | Brain graph                  | —                      |
+| 9     | Brain graph                  | done (v0.9.0)          |
 | 10    | Open-source launch           | —                      |
 
 ## Phase 6 checklist (done)
@@ -50,6 +50,16 @@ Engram was rebuilt as a native macOS app on 2026-11-05 (see `docs/SPEC.md`). Pha
 - [x] 73 tests; eval extended with 3 context conversations
 - [x] Eval on 2026-11-05: user-written Tamam summary kept, status and new items added, repeated decision not duplicated
 - [x] CHANGELOG, README, release v0.8.0
+
+## Phase 9 checklist (done)
+
+- [x] SceneKit vs RealityKit compared; RealityKit chosen (SceneKit deprecated at WWDC 2025)
+- [x] Graph snapshot (active projects, unfiled entries, keyword links) and a deterministic layout in EngramKit
+- [x] Merged meshes: per-project dots, hub with halo, spokes; links inside and across projects
+- [x] Auto-rotate (pauses on drag), drag, scroll/pinch zoom, hover label, click opens the project or the Inbox
+- [x] Legend, empty state, live updates; debug fps counter and picking markers
+- [x] `make demo-graph`: 2,000 entries and 2,858 links at 60 fps on the MacBook (screenshot in docs/images/brain.png)
+- [x] 78 tests; CHANGELOG, README, release v0.9.0
 
 ## Environments
 
@@ -125,6 +135,9 @@ Rows before 2026-11-05 describe the web app (now on the `web-archive` branch).
 | 2026-11-05 | Removed context items stay as tombstones (`dismissed_at`)                                 | Otherwise Claude re-adds what the user removed                                                         |
 | 2026-11-05 | "Create <suggested project>" files all matching "not sure" entries                        | Mikhail's first real save: 29 entries, no projects yet, 29 clicks                                       |
 | 2026-11-05 | Project rename keeps the slug                                                             | Claude and links keep working                                                                          |
+| 2026-11-05 | RealityKit for the graph, with a dozen merged meshes and our own picking                 | SceneKit is deprecated; per-entity rendering wouldn't scale to 2,000 dots                              |
+| 2026-11-05 | Fixed, deterministic layout instead of a live physics simulation                         | Same picture every launch; the slow rotation gives the "alive" feel                                     |
+| 2026-11-05 | Entries of archived projects stay out of the graph                                       | The graph shows what is active                                                                         |
 
 ## Open questions
 
