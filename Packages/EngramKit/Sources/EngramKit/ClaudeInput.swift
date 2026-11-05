@@ -32,15 +32,17 @@ public struct SaveRequest: Codable, Sendable, Equatable {
   public var entries: [EntryInput]
   public var conversationRef: String?
   public var timeZone: String?
+  public var contextUpdates: [ContextUpdateInput]?
 
   public init(
     summary: String, entries: [EntryInput], conversationRef: String? = nil,
-    timeZone: String? = nil
+    timeZone: String? = nil, contextUpdates: [ContextUpdateInput]? = nil
   ) {
     self.summary = summary
     self.entries = entries
     self.conversationRef = conversationRef
     self.timeZone = timeZone
+    self.contextUpdates = contextUpdates
   }
 }
 
@@ -58,6 +60,7 @@ public struct SaveResult: Codable, Sendable, Equatable {
   public var captureId: String
   public var duplicate: Bool
   public var entries: [Saved]
+  public var context: [ContextOutcome]?
 }
 
 /// Input problems reported back to Claude so it can fix the call.

@@ -143,6 +143,12 @@ extension AppDatabase {
           """)
     }
 
+    migrator.registerMigration("v3") { db in
+      // A context item the user removed stays as a tombstone, so the unique
+      // index keeps Claude from adding the same item again.
+      try db.execute(sql: "alter table project_context_items add column dismissed_at text")
+    }
+
     return migrator
   }
 }
