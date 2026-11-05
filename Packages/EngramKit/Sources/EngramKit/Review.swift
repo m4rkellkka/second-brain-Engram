@@ -27,12 +27,26 @@ extension AppDatabase {
     }
   }
 
-  /// Creates the project Claude suggested on a "not sure" card and files the entry there.
-  public func createSuggestedProject(forEntry entryID: String, now: Date = Date()) throws {
+  /// Creates the project Claude suggested on a "not sure" card and files
+  /// every unfiled "not sure" entry with the same suggestion into it.
+  /// Returns how many entries were filed.
+  @discardableResult
+  public func createSuggestedProject(forEntry entryID: String, now: Date = Date()) throws -> Int {
     let suggestion = try writer.read { db in try Self.entry(entryID, db).suggestedProject }
     guard let suggestion else { throw EngramError.projectNotFound }
     let project = try createProject(named: suggestion, now: now)
-    try setProject(project.id, forEntry: entryID, now: now)
+    let ids = try writer.read { db in
+      try String.fetchAll(
+        db,
+        sql: """
+          select id from entries
+          where needs_review = 1 and project_id is null and lower(suggested_project) = lower(?)
+          """, arguments: [suggestion])
+    }
+    for id in Set(ids + [entryID]) {
+      try setProject(project.id, forEntry: id, now: now)
+    }
+    return Set(ids + [entryID]).count
   }
 
   static func entry(_ id: String, _ db: Database) throws -> Entry {
