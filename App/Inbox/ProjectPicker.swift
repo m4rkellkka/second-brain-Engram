@@ -78,7 +78,7 @@ struct ProjectPicker: View {
   }
 }
 
-private struct NewProjectForm: View {
+struct NewProjectForm: View {
   /// Returns an error message, or `nil` when the project was created.
   let create: (String) -> String?
 

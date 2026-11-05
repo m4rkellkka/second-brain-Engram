@@ -1,5 +1,6 @@
 import EngramKit
 import Foundation
+import GRDB
 import Observation
 
 enum Section: String, CaseIterable, Identifiable {
@@ -38,6 +39,8 @@ final class AppModel {
   /// Bumped when the connector wrote to the database from its own process.
   var externalChanges = 0
   var isSearching = false
+  /// The project page open in the Projects section, if any.
+  var openProjectID: String?
 
   init(database: AppDatabase?, loadError: String? = nil) {
     self.database = database
@@ -52,7 +55,11 @@ final class AppModel {
   /// The model for the running app, on the database file on disk.
   static func live() -> AppModel {
     do {
-      return AppModel(database: try AppDatabase.open(at: databaseURL()))
+      let model = AppModel(database: try AppDatabase.open(at: databaseURL()))
+      #if DEBUG
+        model.applyDebugLaunchArguments()
+      #endif
+      return model
     } catch {
       return AppModel(
         database: nil,
@@ -69,6 +76,11 @@ final class AppModel {
       }
     #endif
     return try AppDatabase.defaultURL()
+  }
+
+  func openProject(_ projectID: String) {
+    openProjectID = projectID
+    section = .projects
   }
 
   func startNewThought() {
@@ -105,6 +117,19 @@ final class AppModel {
     perform { try $0.createSuggestedProject(forEntry: entryID) }
   }
 
+  func setDone(_ done: Bool, entryID: String) -> String? {
+    perform { try $0.setDone(done, entryID: entryID) }
+  }
+
+  func createProject(named name: String) -> String? {
+    perform { try $0.createProject(named: name) }
+  }
+
+  /// Runs any database change and returns a message to show on failure.
+  func change(_ work: (AppDatabase) throws -> Void) -> String? {
+    perform(work)
+  }
+
   private func perform(_ work: (AppDatabase) throws -> Void) -> String? {
     guard let database else { return loadError }
     do {
@@ -116,4 +141,22 @@ final class AppModel {
       return "Something went wrong: \(error.localizedDescription)"
     }
   }
+
+  #if DEBUG
+    /// `-EngramSection projects` and `-EngramOpenProject <slug>` open a
+    /// screen at launch, for screenshots and manual checks.
+    private func applyDebugLaunchArguments() {
+      let defaults = UserDefaults.standard
+      if let raw = defaults.string(forKey: "EngramSection"), let value = Section(rawValue: raw) {
+        section = value
+      }
+      if let slug = defaults.string(forKey: "EngramOpenProject"),
+        let id = try? database?.writer.read({ db in
+          try String.fetchOne(db, sql: "select id from projects where slug = ?", arguments: [slug])
+        })
+      {
+        openProject(id)
+      }
+    }
+  #endif
 }

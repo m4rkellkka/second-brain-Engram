@@ -20,12 +20,16 @@ struct EntryRow: View {
           .foregroundStyle(Theme.textSubtle)
       }
 
-      Text(entry.content)
-        .font(.geist(14.5))
-        .foregroundStyle(Theme.text)
-        .lineSpacing(3)
-        .textSelection(.enabled)
-        .frame(maxWidth: .infinity, alignment: .leading)
+      HStack(alignment: .firstTextBaseline, spacing: 6) {
+        if entry.kind == .task { TaskCheckbox(item: item) }
+        Text(entry.content)
+          .font(.geist(14.5))
+          .foregroundStyle(entry.doneAt == nil ? Theme.text : Theme.textSubtle)
+          .strikethrough(entry.doneAt != nil, color: Theme.textSubtle)
+          .lineSpacing(3)
+          .textSelection(.enabled)
+          .frame(maxWidth: .infinity, alignment: .leading)
+      }
 
       if entry.dueAt != nil || entry.url != nil {
         HStack(spacing: 8) {
@@ -47,6 +51,20 @@ struct EntryRow: View {
 
       HStack(spacing: 8) {
         ProjectPicker(entryID: entry.id, current: item.project, projects: projects)
+        if let project = item.project {
+          Button {
+            model.openProject(project.id)
+          } label: {
+            Image(systemName: "arrow.up.right")
+              .font(.system(size: 10, weight: .semibold))
+              .foregroundStyle(Theme.textSubtle)
+              .frame(width: 28, height: 28)
+              .contentShape(Rectangle())
+          }
+          .buttonStyle(.plain)
+          .help("Open \(project.name)")
+          .accessibilityLabel("Open project \(project.name)")
+        }
         if let error {
           Text(error).font(.geist(12)).foregroundStyle(Theme.danger)
         }
@@ -183,5 +201,6 @@ struct SmallButton: View {
         .contentShape(Capsule())
     }
     .buttonStyle(.plain)
+    .focusEffectDisabled()
   }
 }

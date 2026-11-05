@@ -61,6 +61,8 @@ struct SearchPalette: View {
 }
 
 private struct ResultRow: View {
+  @Environment(AppModel.self) private var model
+  @Environment(\.dismiss) private var dismiss
   let item: InboxItem
   let isExpanded: Bool
   let toggle: () -> Void
@@ -77,6 +79,15 @@ private struct ResultRow: View {
             }
           }
           Spacer()
+          if let project = item.project {
+            Button("Open project") {
+              model.openProject(project.id)
+              dismiss()
+            }
+            .buttonStyle(.plain)
+            .font(.geist(11.5))
+            .foregroundStyle(Theme.accent)
+          }
           Text(item.entry.createdAt, format: .dateTime.day().month(.abbreviated))
             .font(.geistMono(11))
             .foregroundStyle(Theme.textSubtle)

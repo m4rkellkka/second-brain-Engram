@@ -6,8 +6,11 @@ struct RootView: View {
   var body: some View {
     @Bindable var model = model
     NavigationSplitView {
-      Sidebar(selection: $model.section)
-        .navigationSplitViewColumnWidth(min: 200, ideal: 220, max: 260)
+      Sidebar(selection: $model.section) { section in
+        // Clicking Projects in the sidebar goes back to the list.
+        if section == .projects { model.openProjectID = nil }
+      }
+      .navigationSplitViewColumnWidth(min: 200, ideal: 220, max: 260)
     } detail: {
       Group {
         if let error = model.loadError {
@@ -32,6 +35,7 @@ struct RootView: View {
 
 private struct Sidebar: View {
   @Binding var selection: Section
+  let onSelect: (Section) -> Void
 
   var body: some View {
     VStack(alignment: .leading, spacing: 0) {
@@ -48,6 +52,7 @@ private struct Sidebar: View {
         ForEach(Section.allCases) { section in
           SidebarRow(section: section, isSelected: section == selection) {
             selection = section
+            onSelect(section)
           }
         }
       }
