@@ -84,13 +84,14 @@ extension AppDatabase {
       .order(Column("rowid"))
       .asRequest(of: InboxItem.self)
       .fetchAll(db)
+    let zone = TimeZone(identifier: capture.timeZone) ?? .current
     return SaveResult(
       captureId: capture.id, duplicate: duplicate,
       entries: rows.map { row in
         SaveResult.Saved(
           id: row.entry.id, kind: row.entry.kind.rawValue, content: row.entry.content,
           project: row.project?.slug, needsReview: row.entry.needsReview,
-          dueAt: row.entry.dueAt.map { $0.formatted(.iso8601) })
+          dueAt: row.entry.dueAt.map { LocalTime.due($0, in: zone) })
       })
   }
 }

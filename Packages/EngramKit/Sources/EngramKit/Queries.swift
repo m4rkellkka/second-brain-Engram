@@ -30,14 +30,14 @@ public struct EntryView: Codable, Sendable, Equatable {
   public var done: Bool
   public var createdAt: String
 
-  public init(_ item: InboxItem) {
+  public init(_ item: InboxItem, timeZone: TimeZone = .current) {
     id = item.entry.id
     kind = item.entry.kind.rawValue
     content = item.entry.content
     project = item.project?.slug
-    dueAt = item.entry.dueAt?.formatted(.iso8601)
+    dueAt = item.entry.dueAt.map { LocalTime.due($0, in: timeZone) }
     done = item.entry.doneAt != nil
-    createdAt = item.entry.createdAt.formatted(.iso8601)
+    createdAt = LocalTime.timestamp(item.entry.createdAt, in: timeZone)
   }
 }
 
@@ -73,7 +73,7 @@ extension AppDatabase {
       .asRequest(of: InboxItem.self).fetchAll(db)
     return ProjectContext(
       slug: project.slug, name: project.name, status: project.status, summary: project.summary,
-      openTasks: tasks.map(EntryView.init), recentEntries: recent.map(EntryView.init))
+      openTasks: tasks.map { EntryView($0) }, recentEntries: recent.map { EntryView($0) })
   }
 
   /// Open tasks, soonest due first; undated ones last.
@@ -102,7 +102,9 @@ extension AppDatabase {
     .fetchAll(db)
     .map {
       UnsortedThought(
-        captureId: $0.id, text: $0.rawText, createdAt: $0.createdAt.formatted(.iso8601),
+        captureId: $0.id, text: $0.rawText,
+        createdAt: LocalTime.timestamp(
+          $0.createdAt, in: TimeZone(identifier: $0.timeZone) ?? .current),
         timeZone: $0.timeZone)
     }
   }

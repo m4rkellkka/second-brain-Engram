@@ -37,7 +37,7 @@ done
 sqlite3 -header -column "$DB" "
   select coalesce(c.conversation_ref, '(typed)') as conversation, e.kind,
     coalesce(p.slug, '-') as project, e.needs_review as review,
-    coalesce(substr(e.due_at, 1, 10), '') as due, coalesce(e.suggested_project, '') as suggested,
+    coalesce(datetime(e.due_at, 'localtime'), '') as due_local, coalesce(e.suggested_project, '') as suggested,
     e.confidence as conf, e.content
   from entries e
   join captures c on c.id = e.capture_id

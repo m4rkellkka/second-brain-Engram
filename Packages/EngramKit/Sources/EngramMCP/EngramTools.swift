@@ -209,7 +209,7 @@ public enum EngramTools {
             db, query: query, projectSlug: args["projectSlug"]?.stringValue, kind: kind,
             limit: limit)
         }
-        return try reply(hits.map(EntryView.init))
+        return try reply(hits.map { EntryView($0, timeZone: timeZone) })
 
       case "list_tasks":
         var dueBefore: Date?
@@ -223,7 +223,7 @@ public enum EngramTools {
           try AppDatabase.openTasks(
             db, projectSlug: args["projectSlug"]?.stringValue, dueBefore: dueBefore)
         }
-        return try reply(tasks.map(EntryView.init))
+        return try reply(tasks.map { EntryView($0, timeZone: timeZone) })
 
       case "list_unsorted":
         return try reply(try database.writer.read { try AppDatabase.unsortedThoughts($0) })
