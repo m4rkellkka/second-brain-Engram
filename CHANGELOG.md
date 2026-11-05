@@ -6,6 +6,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.1] - 2026-11-05
+
+### Added
+
+- `update_project`: Claude can update a project page (description, status, stack, decisions, ideas) without saving new entries.
+- `complete_task`: Claude can tick a finished task (or open it again).
+- Brain side panel: click a project to fly to it and see its stats, live context and recent entries; click an entry to read it.
+
+### Changed
+
+- The Brain graph is redrawn with Metal: glowing dots that add up into nebula-like clusters, depth fog, sizes by number of links, project labels, dashed links across projects, pulses running along links, a flash for each new entry, and hover that lights up a dot's links. Still 60 fps on 2,000 entries.
+
+### Fixed
+
+- Claude could not find how to update a project page: it was only an optional field of `save_to_engram`.
+- The side panel counts every entry of a project, not just the latest ones.
+
 ## [0.9.0] - 2026-11-05
 
 ### Added
@@ -168,7 +185,8 @@ Engram is now a native macOS app. The Next.js + Supabase web app (0.1.0–0.5.0)
 - GitHub Actions CI: lint, format check, typecheck and build.
 - MIT license.
 
-[Unreleased]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.9.0...HEAD
+[Unreleased]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.9.1...HEAD
+[0.9.1]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.6.0...v0.7.0
