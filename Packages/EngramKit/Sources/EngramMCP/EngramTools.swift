@@ -9,7 +9,9 @@ public enum EngramTools {
     Engram is the user's local second brain: notes, ideas, tasks and decisions filed into \
     projects. Before answering questions about the user's projects, plans, decisions or tasks, \
     look them up with search_entries, get_project_context or list_tasks. Save only when the user \
-    asks you to save, remember or file something. Reply to the user in their language.
+    asks you to save, remember or file something. Keep project pages current with \
+    update_project (description, status, stack, decisions, ideas) and tick finished tasks with \
+    complete_task. Reply to the user in their language.
     """
 
   static let entryRules = """
@@ -94,6 +96,7 @@ public enum EngramTools {
         summary: 2 to 6 sentences on what was discussed and decided, in the user's language.
         \(entryRules)
         \(contextRules)
+        To change a project page without new entries, call update_project instead.
         conversationRef: a short title of the conversation. Engram skips a summary it already \
         saved. Afterwards tell the user briefly where each entry went; entries with needsReview \
         wait for the user's check in the Engram Inbox.
@@ -168,6 +171,64 @@ public enum EngramTools {
       ],
       annotations: .init(title: "Open tasks", readOnlyHint: true, openWorldHint: false)),
     Tool(
+      name: "update_project",
+      title: "Update a project page",
+      description: """
+        Update one project's page in Engram: its description (summary), status, and new stack, \
+        decision or idea items. Use it whenever the user asks to update a project, or when a \
+        conversation changed what a project is, where it stands or what was decided, even if \
+        nothing new needs saving as entries. Call get_project_context first and send only what \
+        is new. Items are only added, never replaced; repeats are skipped; entryIds (from \
+        get_project_context, search_entries or list_tasks) link an item to the notes behind it.
+        summary: 1 to 3 sentences on what the project is. status: a few words like \
+        "prototype test" or "paused". If the user wrote the summary or status, Engram keeps \
+        theirs and says so; you cannot override it, but the user can press "Let Claude update" \
+        on the project page.
+        """,
+      inputSchema: [
+        "type": "object",
+        "properties": [
+          "projectSlug": ["type": "string"],
+          "summary": ["type": "string"],
+          "status": ["type": "string"],
+          "add": [
+            "type": "array",
+            "items": [
+              "type": "object",
+              "properties": [
+                "section": ["type": "string", "enum": ["stack", "decision", "idea"]],
+                "text": ["type": "string"],
+                "entryIds": ["type": "array", "items": ["type": "string"]],
+              ],
+              "required": ["section", "text"],
+            ],
+          ],
+        ],
+        "required": ["projectSlug"],
+      ],
+      annotations: .init(
+        title: "Update project", readOnlyHint: false, destructiveHint: false,
+        idempotentHint: true, openWorldHint: false)),
+    Tool(
+      name: "complete_task",
+      title: "Complete a task",
+      description: """
+        Mark a task as done in Engram (or open it again with done: false). Use it when the user \
+        says a task is finished, or when the conversation shows it was done. Find the task's id \
+        with list_tasks or get_project_context.
+        """,
+      inputSchema: [
+        "type": "object",
+        "properties": [
+          "entryId": ["type": "string"],
+          "done": ["type": "boolean"],
+        ],
+        "required": ["entryId"],
+      ],
+      annotations: .init(
+        title: "Complete task", readOnlyHint: false, destructiveHint: false,
+        idempotentHint: true, openWorldHint: false)),
+    Tool(
       name: "list_unsorted",
       title: "List unsorted thoughts",
       description: """
@@ -220,6 +281,19 @@ public enum EngramTools {
         let updates = try decode([ContextUpdateInput].self, from: args["contextUpdates"] ?? [])
         let result = try database.sortCapture(
           captureID, entries: entries, contextUpdates: updates, now: now)
+        ChangeSignal.post()
+        return try reply(result)
+
+      case "update_project":
+        let update = try decode(ContextUpdateInput.self, from: args)
+        let result = try database.updateProjectFromClaude(update, now: now)
+        ChangeSignal.post()
+        return try reply(result)
+
+      case "complete_task":
+        let entryID = try string("entryId", in: args)
+        let done = args["done"]?.boolValue ?? true
+        let result = try database.completeTaskFromClaude(entryID, done: done, now: now)
         ChangeSignal.post()
         return try reply(result)
 

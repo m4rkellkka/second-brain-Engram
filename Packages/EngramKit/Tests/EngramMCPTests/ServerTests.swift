@@ -17,7 +17,7 @@ import Testing
     #expect(
       Set(names) == [
         "save_to_engram", "list_projects", "get_project_context", "search_entries", "list_tasks",
-        "list_unsorted", "sort_capture",
+        "list_unsorted", "sort_capture", "update_project", "complete_task",
       ])
     for tool in EngramTools.all {
       #expect(tool.inputSchema.objectValue?["type"]?.stringValue == "object", "\(tool.name)")
@@ -122,5 +122,57 @@ import Testing
       "get_project_context", arguments: ["slug": "engram"], database: db)
     #expect(text(context).contains("FTS5, no embeddings"))
     #expect(text(context).contains("Building search"))
+  }
+
+  @Test func updateProjectAndCompleteTaskWithoutNewEntries() throws {
+    let db = try AppDatabase.inMemory()
+    _ = try db.createProject(named: "Chess")
+    let saved = try db.saveFromClaude(
+      SaveRequest(
+        summary: "Chess plan.",
+        entries: [
+          EntryInput(kind: "task", content: "Download PGNs", projectSlug: "chess", confidence: 1)
+        ]))
+    let taskID = try #require(saved.entries.first?.id)
+
+    let update = EngramTools.call(
+      "update_project",
+      arguments: [
+        "projectSlug": "chess", "summary": "A trainer for spotting threats.",
+        "status": "Prototype test",
+        "add": [
+          ["section": "decision", "text": "No LLM in v1", "entryIds": .array([.string(taskID)])]
+        ],
+      ], database: db)
+    #expect(update.isError == false)
+    #expect(text(update).contains("\"summary\":\"updated\""))
+    #expect(try db.writer.read { try Entry.fetchCount($0) } == 1)
+
+    let context = EngramTools.call(
+      "get_project_context", arguments: ["slug": "chess"], database: db)
+    #expect(text(context).contains("No LLM in v1"))
+    #expect(text(context).contains("\"fromNotes\":1"))
+
+    let done = EngramTools.call(
+      "complete_task", arguments: ["entryId": .string(taskID)], database: db)
+    #expect(done.isError == false)
+    #expect(try db.writer.read { try AppDatabase.openTasks($0) }.isEmpty)
+
+    let reopened = EngramTools.call(
+      "complete_task", arguments: ["entryId": .string(taskID), "done": false], database: db)
+    #expect(reopened.isError == false)
+    #expect(try db.writer.read { try AppDatabase.openTasks($0) }.count == 1)
+  }
+
+  @Test func completeTaskRejectsNonTasks() throws {
+    let db = try AppDatabase.inMemory()
+    let note = try db.saveTypedThought("just a note")
+    let result = EngramTools.call(
+      "complete_task", arguments: ["entryId": .string(note.id)], database: db)
+    #expect(result.isError == true)
+    #expect(text(result).contains("not a task"))
+    let unknown = EngramTools.call(
+      "update_project", arguments: ["projectSlug": "nope", "status": "x"], database: db)
+    #expect(unknown.isError == true)
   }
 }

@@ -8,11 +8,16 @@ public struct ContextUpdateInput: Codable, Sendable, Equatable {
     public var text: String
     /// Indexes into the `entries` of the same call that this item comes from.
     public var fromEntries: [Int]?
+    /// Ids of saved entries it comes from (for `update_project`).
+    public var entryIds: [String]?
 
-    public init(section: String, text: String, fromEntries: [Int]? = nil) {
+    public init(
+      section: String, text: String, fromEntries: [Int]? = nil, entryIds: [String]? = nil
+    ) {
       self.section = section
       self.text = text
       self.fromEntries = fromEntries
+      self.entryIds = entryIds
     }
   }
 
@@ -120,7 +125,15 @@ enum ContextRules {
         guard let section = ContextSection(rawValue: item.section.lowercased()),
           let text = clean(item.text)
         else { continue }
-        let sources = (item.fromEntries ?? []).map { entryIDs[$0] }
+        let known = try Set(
+          String.fetchAll(
+            db,
+            sql:
+              "select id from entries where id in (\(databaseQuestionMarks(count: (item.entryIds ?? []).count)))",
+            arguments: StatementArguments(item.entryIds ?? [])))
+        let sources =
+          (item.fromEntries ?? []).map { entryIDs[$0] }
+          + (item.entryIds ?? []).filter { known.contains($0) }
         let row = ContextItem(
           id: newID(), projectId: project.id, section: section, text: text, source: .ai,
           entryIds: encode(sources), createdAt: now, dismissedAt: nil)
