@@ -6,6 +6,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-11-05
+
+### Added
+
+- Projects list: status, open tasks, entries and last activity for every project, "New project", archived projects folded below.
+- Project pages with a live context: summary and status, Stack, Decisions and Open ideas (each Claude item shows the notes it came from), tasks with checkboxes and recent notes.
+- Claude keeps project pages up to date: `save_to_engram` and `sort_capture` take `contextUpdates` (new items, a new summary or status), and `get_project_context` returns the whole live context.
+- Your edits win: a summary or status you wrote is never replaced by Claude ("Let Claude update" hands it back), and items you remove are not added again.
+- Add, edit and remove context items by hand; rename, recolor and archive projects.
+- Tick tasks on the project page and on Inbox cards; open a project from its Inbox card or from ⌘K.
+
+### Changed
+
+- "Create <project>" on a "not sure" card now files every entry with the same suggestion, not just one.
+- Migration v3 remembers removed context items. Existing data is kept.
+
 ## [0.7.0] - 2026-11-05
 
 ### Added
@@ -143,7 +159,8 @@ Engram is now a native macOS app. The Next.js + Supabase web app (0.1.0–0.5.0)
 - GitHub Actions CI: lint, format check, typecheck and build.
 - MIT license.
 
-[Unreleased]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.4.0...v0.5.0
