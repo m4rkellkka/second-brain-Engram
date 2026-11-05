@@ -1,23 +1,36 @@
 # Progress
 
-**Current version:** 0.5.0 · **Current phase:** Phase 6 — Native foundation · status: **in progress**
+**Current version:** 0.6.0 · **Current phase:** Phase 7 — Claude connector + search · status: **not started**
 
 Engram was rebuilt as a native macOS app on 2026-11-05 (see `docs/SPEC.md`). Phases 0–5 shipped the Next.js + Supabase web app, kept on the `web-archive` branch.
 
 | Phase | Name                         | Status                 |
 | ----- | ---------------------------- | ---------------------- |
 | 0–5   | Web app (Next.js + Supabase) | done (v0.1.0 – v0.5.0) |
-| 6     | Native foundation            | planning               |
+| 6     | Native foundation            | done (v0.6.0)          |
 | 7     | Claude connector + search    | —                      |
 | 8     | Projects & live context      | —                      |
 | 9     | Brain graph                  | —                      |
 | 10    | Open-source launch           | —                      |
 
+## Phase 6 checklist (done)
+
+- [x] Web app removed from `demo` (kept on `web-archive`); local Supabase stack and its volumes deleted
+- [x] Xcode project with a synchronized `App/` folder + `EngramKit` package; `Makefile`; `swift format`; version in `Config/Version.xcconfig`
+- [x] Design tokens, bundled Geist fonts, app icon
+- [x] SQLite via GRDB, WAL, migration v1 with the full schema and an FTS5 index
+- [x] Window with sidebar (Inbox, Projects, Brain placeholders); stays in the menu bar when closed
+- [x] Menu-bar capture popover and ⌘N; Enter saves, Shift+Enter adds a line
+- [x] Inbox: latest 50, kind filter, project menu with inline "New project…", live updates
+- [x] 25 tests (schema, WAL reopen, FTS, thoughts, inbox, projects, slugs)
+- [x] CI on `macos-26` for `chore` commits
+- [x] README, CHANGELOG, release v0.6.0
+
 ## Environments
 
 | What           | Where                                                        | Notes                                                             |
 | -------------- | ------------------------------------------------------------ | ----------------------------------------------------------------- |
-| Native app     | `~/Library/Application Support/Engram/engram.sqlite`         | From Phase 6                                                      |
+| Native app     | `~/Library/Application Support/Engram/engram.sqlite`         | Debug builds take `-EngramDatabasePath <file>` for test data      |
 | Cloud Supabase | Project `engram` (`fsnmuvzztrelevofjkyv`), paused 2026-11-04 | Not used; restorable for 90 days, then delete it in the dashboard |
 
 ## Decisions
@@ -71,9 +84,17 @@ Rows before 2026-11-05 describe the web app (now on the `web-archive` branch).
 | 2026-11-05 | Automatic pickup of Claude chats dropped from the MVP                                   | Test: a scheduled task saw only memory, not today's chats; scheduled tasks run in the cloud               |
 | 2026-11-05 | Releases ad-hoc signed, not notarized; install step documented (`xattr` or Open Anyway) | No paid Apple Developer account needed                                                                    |
 | 2026-11-05 | Version numbers continue (Phase 6 → 0.6.0 … Phase 10 → 0.10.0); macOS only for now      | Keeps SemVer history; Windows is a post-MVP idea                                                          |
+| 2026-11-05 | No global hotkey and no launch at login for now; capture from the menu bar and ⌘N        | Mikhail's call; both are post-MVP ideas                                                                |
+| 2026-11-05 | Hand-written Xcode project with a synchronized `App/` folder, no XcodeGen                | New files need no project edits; contributors just open it in Xcode                                    |
+| 2026-11-05 | Capture field is an `NSTextView` bridge                                                  | Only AppKit tells Return (save) from Shift+Return (new line) reliably                                   |
+| 2026-11-05 | Timestamps in GRDB's UTC text format; dedupe hash unique only for Claude summaries       | Sortable and SQLite-friendly; typing the same thought twice is fine                                    |
+| 2026-11-05 | Bundle id `io.github.m4rkellkka.Engram`, ad-hoc signed, hardened runtime                 | No paid developer account; an id tied to the GitHub account, not a domain we don't own                 |
+| 2026-11-05 | CI on the stable `macos-26` image (Xcode 26.6), not the Xcode 27 preview                 | Nothing needs Xcode 27; previews break                                                                 |
 
 ## Open questions
 
+- [ ] Phase 6 "done when" (under 3 seconds from the menu-bar icon) needs Mikhail's hand check: keystrokes can't be automated here without Accessibility permission
+- [ ] Phase 7: connect through a Claude Desktop Extension (`.mcpb`) or by editing `claude_desktop_config.json`?
 - [ ] Is "Engram" free on GitHub and as a Mac app name?
 - [ ] iPhone path while the Mac is off (see SPEC → Post-MVP): scheduled task into a connected folder, iCloud Drive inbox via a Shortcut, or a tunnel
 
