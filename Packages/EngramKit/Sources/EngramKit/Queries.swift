@@ -10,12 +10,25 @@ public struct ProjectSummary: Codable, Sendable, Equatable {
   public var entryCount: Int
 }
 
-/// `get_project_context` until the live context arrives in Phase 8.
+/// `get_project_context`: the live context of one project.
 public struct ProjectContext: Codable, Sendable, Equatable {
+  public struct Line: Codable, Sendable, Equatable {
+    public var text: String
+    /// "claude" or "user".
+    public var by: String
+    public var fromNotes: Int
+  }
+
   public var slug: String
   public var name: String
   public var status: String?
   public var summary: String?
+  /// Who wrote the summary and status; the user's text is never replaced.
+  public var summaryBy: String
+  public var statusBy: String
+  public var stack: [Line]
+  public var decisions: [Line]
+  public var ideas: [Line]
   public var openTasks: [EntryView]
   public var recentEntries: [EntryView]
 }
@@ -62,18 +75,23 @@ extension AppDatabase {
   public static func projectContext(_ db: Database, slug: String) throws -> ProjectContext? {
     guard
       let project = try Project.filter(Column("slug") == slug && Column("archived_at") == nil)
-        .fetchOne(db)
+        .fetchOne(db),
+      let page = try projectPage(db, projectID: project.id)
     else { return nil }
-    let base = Entry.including(optional: Entry.project).including(optional: Entry.capture)
-      .filter(Column("project_id") == project.id)
-    let tasks = try base.filter(Column("kind") == EntryKind.task && Column("done_at") == nil)
-      .order(sql: "due_at is null, due_at, created_at desc")
-      .asRequest(of: InboxItem.self).fetchAll(db)
-    let recent = try base.order(Column("created_at").desc).limit(20)
-      .asRequest(of: InboxItem.self).fetchAll(db)
+    func lines(_ section: ContextSection) -> [ProjectContext.Line] {
+      (page.sections[section] ?? []).map {
+        .init(
+          text: $0.item.text, by: $0.item.source == .user ? "user" : "claude",
+          fromNotes: $0.sources.count)
+      }
+    }
     return ProjectContext(
       slug: project.slug, name: project.name, status: project.status, summary: project.summary,
-      openTasks: tasks.map { EntryView($0) }, recentEntries: recent.map { EntryView($0) })
+      summaryBy: project.summarySource == .user ? "user" : "claude",
+      statusBy: project.statusSource == .user ? "user" : "claude",
+      stack: lines(.stack), decisions: lines(.decision), ideas: lines(.idea),
+      openTasks: page.openTasks.map { EntryView($0) },
+      recentEntries: page.recentEntries.prefix(20).map { EntryView($0) })
   }
 
   /// Open tasks, soonest due first; undated ones last.

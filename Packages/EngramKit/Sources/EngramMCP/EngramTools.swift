@@ -29,6 +29,43 @@ public enum EngramTools {
     time zone that list_projects returns.
     """
 
+  static let contextRules = """
+    contextUpdates (optional): keep the project pages current. For each project the \
+    conversation changed, send its projectSlug and only what is new:
+    - add: new items, each with section "stack" (tools, tech, materials the project uses), \
+    "decision" (something settled) or "idea" (an open possibility), a short text and \
+    fromEntries, the indexes of this call's entries it comes from. Items are only added, never \
+    replaced; repeats are skipped. Check get_project_context first to avoid restating items.
+    - summary: a new 1 to 3 sentence description, only if the project itself changed. \
+    - status: a few words like "MVP in progress" or "paused", only if it changed.
+    If the user wrote the summary or status, Engram keeps theirs and says so in the result.
+    """
+
+  static let contextSchema: Value = [
+    "type": "array",
+    "items": [
+      "type": "object",
+      "properties": [
+        "projectSlug": ["type": "string"],
+        "summary": ["type": "string"],
+        "status": ["type": "string"],
+        "add": [
+          "type": "array",
+          "items": [
+            "type": "object",
+            "properties": [
+              "section": ["type": "string", "enum": ["stack", "decision", "idea"]],
+              "text": ["type": "string"],
+              "fromEntries": ["type": "array", "items": ["type": "integer", "minimum": 0]],
+            ],
+            "required": ["section", "text"],
+          ],
+        ],
+      ],
+      "required": ["projectSlug"],
+    ],
+  ]
+
   static let entrySchema: Value = [
     "type": "object",
     "properties": [
@@ -54,6 +91,7 @@ public enum EngramTools {
         first so entries land in the right project.
         summary: 2 to 6 sentences on what was discussed and decided, in the user's language.
         \(entryRules)
+        \(contextRules)
         conversationRef: a short title of the conversation. Engram skips a summary it already \
         saved. Afterwards tell the user briefly where each entry went; entries with needsReview \
         wait for the user's check in the Engram Inbox.
@@ -65,6 +103,7 @@ public enum EngramTools {
           "entries": ["type": "array", "items": entrySchema, "minItems": 1],
           "conversationRef": ["type": "string"],
           "timeZone": ["type": "string", "description": "IANA time zone, if known"],
+          "contextUpdates": contextSchema,
         ],
         "required": ["summary", "entries"],
       ],
@@ -84,8 +123,9 @@ public enum EngramTools {
       name: "get_project_context",
       title: "Get a project's context",
       description: """
-        One project's summary, status, open tasks and recent entries. Use it when the user \
-        asks about a project or wants to continue working on it.
+        One project's live context: summary and status (and whether the user or Claude wrote \
+        them), stack, decisions, open ideas, open tasks and recent entries. Use it when the user \
+        asks about a project, wants to continue working on it, or before sending contextUpdates.
         """,
       inputSchema: [
         "type": "object",
@@ -141,12 +181,14 @@ public enum EngramTools {
         File one thought from list_unsorted into entries. Resolve relative dates against the \
         thought's createdAt and timeZone, not today.
         \(entryRules)
+        \(contextRules)
         """,
       inputSchema: [
         "type": "object",
         "properties": [
           "captureId": ["type": "string"],
           "entries": ["type": "array", "items": entrySchema, "minItems": 1],
+          "contextUpdates": contextSchema,
         ],
         "required": ["captureId", "entries"],
       ],
@@ -173,7 +215,9 @@ public enum EngramTools {
       case "sort_capture":
         let captureID = try string("captureId", in: args)
         let entries = try decode([EntryInput].self, from: args["entries"] ?? [])
-        let result = try database.sortCapture(captureID, entries: entries, now: now)
+        let updates = try decode([ContextUpdateInput].self, from: args["contextUpdates"] ?? [])
+        let result = try database.sortCapture(
+          captureID, entries: entries, contextUpdates: updates, now: now)
         ChangeSignal.post()
         return try reply(result)
 
