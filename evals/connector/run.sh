@@ -45,6 +45,18 @@ sqlite3 -header -column "$DB" "
   order by c.created_at, e.rowid" | tee "$OUT/results.txt"
 
 echo
+echo "== Project context"
+sqlite3 -header -column "$DB" "
+  select p.slug, p.status, p.status_source as status_by, p.summary_source as summary_by,
+    substr(p.summary, 1, 60) as summary
+  from projects p order by p.slug"
+echo
+sqlite3 -header -column "$DB" "
+  select p.slug, i.section, i.source, json_array_length(i.entry_ids) as notes, i.text
+  from project_context_items i join projects p on p.id = i.project_id
+  where i.dismissed_at is null order by p.slug, i.section, i.created_at" | tee "$OUT/context.txt"
+
+echo
 for file in "$OUT"/0*-search-decision.reply.txt "$OUT"/0*-study-tasks.reply.txt; do
   echo "== $(basename "$file")"
   cat "$file"

@@ -6,7 +6,8 @@ insert into projects (id, name, slug, color, summary_source, status_source, crea
   ('p-health', 'Здоровье', 'zdorove', '#7FA8FF', 'ai', 'ai', '2026-11-01 09:00:00.000');
 update projects set summary = 'Open-source second brain as a native Mac app (Swift, SQLite, Claude connector).' where id = 'p-engram';
 update projects set summary = 'University courses this semester: computer networks, web design, automata theory.' where id = 'p-ucheba';
-update projects set summary = 'Small business app for restaurant orders; pricing and first customers.' where id = 'p-tamam';
+-- Written by the user: Claude must keep it ("user edits win").
+update projects set summary = 'Моё описание: приложение для заказов в ресторанах.', summary_source = 'user' where id = 'p-tamam';
 update projects set summary = 'Sleep, sport and doctor visits.' where id = 'p-health';
 
 insert into captures values

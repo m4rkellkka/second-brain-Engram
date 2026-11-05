@@ -16,6 +16,10 @@ actual entries; compare them by hand.
 | 09 | Personal note | note → engram (or no project with review) |
 | 10 | Sort inbox | typed thought 1 → tasks dentist + protein (zdorove); typed thought 2 → idea → tamam |
 
+| 11 | Engram progress | contextUpdates for engram: decision "project pages are native SwiftUI", stack "GRDB", status like "beta" |
+| 12 | Tamam pivot | Tamam summary stays the user's text (result says "kept the user's text"); status updated to "first customers" |
+| 13 | Repeat | the FTS5 decision is not added twice (alreadyThere) |
+
 Questions after the saves:
 
 - "What did I decide about search?" → answers FTS5 without embeddings, citing that entry.
