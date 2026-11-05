@@ -1,376 +1,280 @@
-# Engram — MVP Spec
+# Engram — Spec (native macOS app)
 
-> As of 2026-11-03
+> As of 2026-11-05. Versions 0.1.0–0.5.0 were a Next.js + Supabase web app; that code lives on the `web-archive` branch. From 0.6.0 Engram is a native macOS app.
 
 ## Overview
 
-Engram is an open-source, self-hosted second brain: you dump thoughts as text (typed or dictated with the keyboard, or summed up from a conversation with Claude), and AI files them into the right project and keeps each project's context up to date.
+Engram is an open-source second brain that lives on your Mac. You think out loud with Claude (by voice or text) and say "save this to Engram", or you jot a thought with a global hotkey. Engram files everything into the right project, keeps each project's context up to date, and shows it all as a 3D graph.
 
 **The problem.** Ideas get lost, notes live nowhere, and every AI tool starts from zero about your projects. Manual systems like Obsidian or Notion fail because filing is work and the payoff comes late.
 
 **Product principles**
 
-- **Capture in under 3 seconds.** Open the app and you are already typing or talking. No folders, tags or required fields.
-- **AI does the filing.** Type, project, tasks and due dates are extracted automatically. The user only corrects mistakes.
-- **Useful from day one.** Every build phase ships something you use daily.
-- **Your data, any model.** Self-hosted on Supabase, configurable LLM provider, one-click Markdown export.
+- **Capture in under 3 seconds.** A global hotkey opens a capture panel from anywhere; Enter saves it. No folders, tags or required fields.
+- **Claude does the thinking.** Conversations happen in Claude Desktop; Claude sorts what you said and saves it through Engram's connector. Engram itself needs no API key and costs nothing to run: AI work uses your Claude subscription.
+- **Local and simple.** One `.app`, one SQLite file on disk. No Docker, no server, no account, no cloud.
+- **Your data, plain and portable.** One-click Markdown export.
 - **Beautiful but quiet.** Dark, minimal UI. The 3D brain graph is the one "wow" element; everything else stays calm.
 
-## MVP scope
+## Scope (MVP)
 
-The MVP is five screens in one installable PWA, for a single user per self-hosted instance.
+| Surface          | What it does                                                        | Key interactions                                   |
+| ---------------- | ------------------------------------------------------------------- | -------------------------------------------------- |
+| Quick capture    | Floating panel from a global hotkey or the menu-bar icon            | Type or dictate (macOS dictation), Enter to save   |
+| Inbox            | Feed of recent entries; typed thoughts wait here until Claude sorts | Filter by kind, fix project, resolve "not sure"    |
+| Projects         | Project page with a live context Claude keeps updated               | Edit context, tick tasks, rename, recolor, archive |
+| Search           | ⌘K full-text search over all entries                                | Type, jump to an entry or project                  |
+| Brain            | 3D graph of all entries, clustered by project                       | Rotate, hover, click a node to open its project    |
+| Claude connector | MCP server that Claude Desktop uses to save and read your brain     | "Save this to Engram", "what's open on project X?" |
 
-| Screen   | What it does                                              | Key interactions                                      |
-| -------- | --------------------------------------------------------- | ----------------------------------------------------- |
-| Capture  | Instant text input; shows how the last capture was sorted | Type or use keyboard dictation, attach link           |
-| Inbox    | Feed of recent entries, already typed and filed           | Filter by type, fix project, resolve "not sure" items |
-| Projects | Project page with a live context the AI keeps updated     | Edit context, tick tasks, rename, archive             |
-| Ask      | Chat with your own notes, answers cite the source entries | Ask by text, open a cited entry                       |
-| Brain    | 3D graph of all entries, clustered by project             | Rotate, hover, click a node to open its project       |
+There is no Ask screen: asking your brain is a conversation with Claude, which searches Engram through the connector.
 
-**Out of scope for the MVP:** teams and multi-user hosting, native iOS/Android apps, the MCP server (Phase 9, after the MVP but before 1.0.0), reminders and push notifications, a "Today" screen, calendar/email integrations, iOS share-sheet capture, full offline sync. These are listed under Post-MVP.
+**Out of scope for the MVP:** Windows and Linux, an iPhone app, sync between devices, reminders and notifications, a Today screen, imports (Obsidian, Apple Notes), an in-app LLM provider. See Post-MVP.
 
-## Architecture & stack
-
-One Next.js app (UI + server) on Vercel, Supabase for data, auth and files, and pluggable AI providers called only from the server.
-
-```mermaid
-flowchart TB
-  subgraph Client["Engram PWA · Next.js client"]
-    direction LR
-    CAP[Capture] ~~~ INB[Inbox] ~~~ PRJ[Projects] ~~~ ASK[Ask] ~~~ BRN[Brain graph]
-  end
-  subgraph Server["Next.js server · Vercel"]
-    direction LR
-    ACT[Server actions and routes] --> PIPE[[Processing pipeline]]
-    CRON[Cron retry sweep] --> PIPE
-  end
-  subgraph Supa["Supabase"]
-    direction LR
-    PG[(Postgres + pgvector)] ~~~ AUTH[Auth] ~~~ STO[Audio storage]
-  end
-  subgraph AI["AI providers · any model"]
-    direction LR
-    LLM[LLM: sort, context, Ask] ~~~ EMB[Embeddings]
-  end
-  Client -- capture, ask --> ACT
-  ACT -- read / write --> Supa
-  PIPE -- read / write --> Supa
-  PIPE -- prompts --> AI
-```
-
-The browser talks only to Next.js (sign-in also goes through a Server Action); API keys and every model call stay on the server.
-
-| Layer           | Choice                                                   | Why                                                                               |
-| --------------- | -------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| App             | Next.js (App Router), TypeScript strict                  | One codebase for UI and server logic; server actions keep API keys off the client |
-| UI              | Tailwind CSS + shadcn/ui, Geist font                     | Fast to build, easy to theme to the mockups                                       |
-| PWA             | Web app manifest + service worker                        | Installs to the iPhone home screen, no App Store                                  |
-| Data            | Supabase Postgres + pgvector                             | Relational data and vector search in one database                                 |
-| Auth            | Supabase Auth (email + password, sign-up disabled)       | No email round-trips, works in the installed iOS PWA and on every device          |
-| Files           | Supabase Storage (private bucket)                        | Reserved for voice recordings; unused since Phase 4 was dropped                   |
-| AI              | Vercel AI SDK                                            | One interface for Anthropic, OpenAI or local models; structured output with zod   |
-| Background work | Next.js `after()` + Vercel Cron sweep                    | Process captures after the response; retry anything stuck                         |
-| 3D graph        | react-three-fiber or 3d-force-graph (decided in Phase 7) | WebGL rendering for thousands of nodes                                            |
-| Validation      | zod                                                      | Env vars, server action inputs, LLM output                                        |
-
-**Deployment model.** Each user runs their own instance: their own Supabase project and Vercel deployment, with API keys in env vars. This avoids storing other people's keys and keeps the open-source story simple. A hosted multi-user version is a later decision.
-
-## Data model
-
-Four tables: a **capture** is what the user sent (one voice note), and it is split into one or more **entries** (two tasks), each filed into a **project** and linked to similar entries.
-
-```sql
-create extension if not exists vector;
-
-create type entry_kind as enum ('idea', 'task', 'note', 'link');
-create type capture_source as enum ('text', 'voice');
-create type processing_status as enum ('pending', 'processing', 'processed', 'failed');
-create type link_kind as enum ('semantic', 'manual');
-
-create table projects (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references auth.users on delete cascade,
-  name text not null,
-  slug text not null,
-  color text not null,
-  status text,
-  summary text,                  -- live context, see Project context below
-  summary_source text not null default 'ai', -- 'ai' | 'user'
-  status_source text not null default 'ai',  -- 'ai' | 'user'
-  context_updated_at timestamptz,
-  archived_at timestamptz,
-  created_at timestamptz not null default now(),
-  unique (user_id, slug)
-);
-
-create table captures (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references auth.users on delete cascade,
-  source capture_source not null,
-  raw_text text,                 -- typed text or transcript
-  audio_path text,               -- Storage path for voice notes
-  status processing_status not null default 'pending',
-  attempts int not null default 0,
-  error text,
-  created_at timestamptz not null default now(),
-  processed_at timestamptz
-);
-
-create table entries (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references auth.users on delete cascade,
-  capture_id uuid references captures on delete cascade,
-  project_id uuid references projects on delete set null,
-  kind entry_kind not null,
-  content text not null,
-  url text,
-  due_at timestamptz,
-  done_at timestamptz,
-  confidence real,               -- AI confidence in kind + project
-  needs_review boolean not null default false,
-  embedding vector(1536),        -- dimension fixed by the embedding model
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
-
-create table entry_links (
-  user_id uuid not null references auth.users on delete cascade,
-  source_id uuid not null references entries on delete cascade,
-  target_id uuid not null references entries on delete cascade,
-  kind link_kind not null,
-  weight real,
-  primary key (source_id, target_id)
-);
-```
-
-**Project context** (changed in Phase 5 from one JSON column). Stack, decisions and open ideas are rows in `project_context_items (project_id, section, text, source, entry_ids)`, so concurrent captures never overwrite each other, every item knows whether the AI or the user wrote it, and it keeps the entries it came from. A unique index on the lowercased text per section blocks duplicates. A summary or status the user writes has `source = 'user'` and the AI never replaces it.
-
-**Indexes.** `entries (user_id, created_at desc)` for the Inbox, `entries (project_id)`, an HNSW index on `entries.embedding` with `vector_cosine_ops`, a partial index on `captures (created_at) where status in ('pending', 'failed')` for the retry sweep, and a full-text index on `entries.content` for hybrid search.
-
-**Security.** Row Level Security on every table with `user_id = auth.uid()` for all operations. Voice files live in a private `audio` bucket at `{user_id}/{capture_id}.<ext>` with matching Storage policies.
-
-**Same-owner references.** RLS only checks a row's own `user_id`, so plain foreign keys would let a user point an entry or link at someone else's row by its id. Every cross-table reference is therefore a composite foreign key on `(id, user_id)` (`entries → projects`, `entries → captures`, `entry_links → entries`), backed by `unique (id, user_id)` on the parent and a matching index. `entries.project_id` uses `on delete set null (project_id)` so only the project column is cleared. Full-text search uses the `simple` configuration because notes mix Russian and English.
-
-**Sign-in.** Email and password, only for the emails listed in `ALLOWED_EMAILS` (one person per instance). Public sign-up is disabled in Supabase Auth itself, so nobody can register through the API with the publishable key; the owner's account is created once in the Supabase dashboard. No emails are sent, which avoids SMTP setup, the built-in hourly email limit and magic links opening in Safari instead of the installed PWA. A forgotten password is reset in the dashboard.
-
-**Embedding dimension.** `vector(1536)` matches OpenAI `text-embedding-3-small`, the proposed default. Switching models means a migration plus a re-embed script, so the model is set once per instance.
-
-## AI pipeline
-
-Every capture runs through the same server-side pipeline after the user already got a response, so capture always feels instant.
-
-1. **Save.** The capture is stored with `status = pending`; the UI returns immediately.
-2. **Transcribe** (dropped with Phase 4). Voice reaches Engram as text: keyboard dictation, or a conversation summary from the Phase 9 connector.
-3. **Sort.** One LLM call with structured output splits the text into entries and assigns kind, project, due date and confidence. It receives the list of existing projects (name, slug, summary) so it can match them.
-4. **Review gate.** Entries with confidence below a threshold, or no matching project, get `needs_review = true` and show the "not sure" card in the Inbox.
-5. **Embed + link.** Each entry is embedded; the top similar entries above a similarity threshold become `semantic` links for the graph.
-6. **Update project context.** For each touched project, a second LLM call gets the current context plus the new entries and returns a small patch (new decision, new idea, updated summary or status), not a full rewrite.
-7. **Done.** `status = processed`. Failures set `failed` and increment `attempts`; the cron sweep retries up to 3 times.
-
-Structured output for step 3:
-
-```ts
-const SortedCapture = z.object({
-  entries: z
-    .array(
-      z.object({
-        kind: z.enum(["idea", "task", "note", "link"]),
-        content: z.string(), // cleaned, in the user's language
-        projectSlug: z.string().nullable(),
-        newProjectName: z.string().nullable(),
-        dueAt: z.string().datetime().nullable(),
-        url: z.string().url().nullable(),
-        confidence: z.number().min(0).max(1),
-      }),
-    )
-    .min(1),
-});
-```
-
-**Context rules.** The AI appends to lists and proposes summary/status changes; anything the user edited by hand wins and is never overwritten. Every context change keeps a reference to the entries that caused it, so the page can show "updated from these notes".
-
-**Ask (RAG).** The question is embedded, then hybrid search (pgvector cosine + Postgres full-text) returns the top ~12 entries, optionally scoped to a project named in the question. The answer streams back and cites entries by id; the UI renders the citations as source cards.
-
-**Models.** A small, fast model for sorting and context patches; a stronger model for Ask. Both are env-configurable through the Vercel AI SDK. Token usage is logged per call from Phase 3 so cost per capture is known early.
-
-## Build phases
-
-Ten phases were planned; Phase 4 (voice capture) was dropped on 2026-11-04. Each one ends in something working that you can try. Phases 0–8 are the MVP; Phase 9 comes right after it and must ship before the stable 1.0.0. Releases are numbered in order: each shipped phase bumps the minor version. Each phase is built, demoed and explicitly approved before the next one starts.
+## Architecture
 
 ```mermaid
 flowchart LR
-  P0[0 · Foundation] -->|OK| P1[1 · Auth + data model] -->|OK| P2[2 · Text capture + PWA]
-  P2 -->|OK| P3[3 · AI sorting] -->|OK| P5[5 · Projects + live context]
-  P5 -->|OK| P6[6 · Search + Ask] -->|OK| P7[7 · Brain graph] -->|OK| P8[8 · Open-source launch]
-  P8 -->|OK| P9[9 · Claude connector]
+  subgraph Claude["Claude Desktop (Mac)"]
+    CHAT[Conversation, voice or text]
+  end
+  subgraph App["Engram.app"]
+    UI[SwiftUI windows + menu-bar capture]
+    MCP[engram-mcp helper · stdio]
+    KIT[[EngramKit: models, rules, queries]]
+  end
+  DB[(engram.sqlite · WAL)]
+  CHAT -- MCP tools --> MCP
+  UI --> KIT
+  MCP --> KIT
+  KIT --> DB
+  MCP -. Darwin notification .-> UI
 ```
 
-**Rules for every phase:** stay inside the phase scope, keep `lint`, `typecheck` and `build` green, add tests for logic that can break silently (RLS, pipeline parsing), commit in small conventional commits, and end with a short report: what was built, how to try it, what was left out, open questions.
+- **Engram.app** is a SwiftUI app with a main window (Inbox, Projects, Brain), a `MenuBarExtra` and a global-hotkey capture panel.
+- **engram-mcp** is a small command-line helper shipped inside the app bundle. Claude Desktop starts it as a local MCP server over stdio. It is a separate process, so it opens the same database file and posts a Darwin notification after each write so the open app refreshes.
+- **EngramKit** is a local Swift package with everything both targets share: schema and migrations, save and context rules, search. All logic lives here so it can be tested with `swift test` without the UI.
 
-### Phase 0 — Foundation
+| Layer         | Choice                                                   | Why                                                                          |
+| ------------- | -------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| App           | Swift 6, SwiftUI, macOS 15+                              | Native, fast, menu-bar and hotkey support                                    |
+| Storage       | SQLite via GRDB.swift, WAL mode                          | Explicit migrations, FTS5 full-text search, safe access from two processes   |
+| Connector     | MCP Swift SDK (`modelcontextprotocol/swift-sdk`), stdio  | Official SDK; stdio needs no ports, tokens or network                        |
+| Search        | SQLite FTS5 (`unicode61`, prefix search)                 | Works for mixed Russian and English, no embeddings and no second AI provider |
+| 3D graph      | SceneKit or RealityKit (decided in its phase)            | Native GPU rendering, no web view                                            |
+| Global hotkey | Decided in Phase 6 (KeyboardShortcuts package or Carbon) | User-rebindable shortcut                                                     |
+| Tests         | Swift Testing in EngramKit                               | Test where bugs live: save rules, context rules, search, MCP input checks    |
+| Distribution  | GitHub Releases: zipped or DMG `.app`, ad-hoc signed     | No paid Apple Developer account needed; install steps documented             |
 
-Goal: an empty but real app shell that matches the design.
+**Where the data lives.** `~/Library/Application Support/Engram/engram.sqlite`. The app is not sandboxed (it is not distributed through the App Store), so the helper and the app can share that file.
 
-- Next.js App Router, TypeScript strict, pnpm, ESLint + Prettier
-- Tailwind + shadcn/ui with the design tokens from the mockups (dark theme, Geist, project colors)
-- App shell: desktop sidebar, mobile tab bar, empty routes for Capture, Inbox, Projects, Ask, Brain
-- zod-validated env, `.env.example`, Supabase CLI local stack
-- GitHub Actions: lint, typecheck, build; MIT license
+**Installing without a paid developer account.** The release is ad-hoc signed but not notarized. After moving `Engram.app` to `/Applications`, the user runs `xattr -dr com.apple.quarantine /Applications/Engram.app` once (or uses System Settings → Privacy & Security → Open Anyway). Building from source in Xcode needs neither. Notarization is a later decision.
+
+## Data model
+
+Single user, so there is no `user_id`, auth or row-level security. Ids are UUID strings; times are ISO 8601 in UTC.
+
+```sql
+create table projects (
+  id text primary key,
+  name text not null,
+  slug text not null unique,
+  color text not null,
+  status text,
+  summary text,
+  summary_source text not null default 'ai',  -- 'ai' | 'user'
+  status_source text not null default 'ai',   -- 'ai' | 'user'
+  context_updated_at text,
+  archived_at text,
+  created_at text not null
+);
+
+create table captures (
+  id text primary key,
+  source text not null,         -- 'typed' | 'claude'
+  raw_text text not null,       -- typed text, or the conversation summary Claude sent
+  conversation_ref text,        -- optional title/date from Claude, for display and dedupe
+  content_hash text not null,   -- blocks saving the same summary twice
+  status text not null,         -- 'unsorted' | 'sorted'
+  time_zone text not null,
+  created_at text not null,
+  sorted_at text
+);
+
+create table entries (
+  id text primary key,
+  capture_id text references captures on delete cascade,
+  project_id text references projects on delete set null,
+  kind text not null,           -- 'idea' | 'task' | 'note' | 'link'
+  content text not null,
+  keywords text,                -- space-separated base forms from Claude, for search and graph links
+  url text,
+  due_at text,
+  done_at text,
+  confidence real,
+  needs_review integer not null default 0,
+  created_at text not null,
+  updated_at text not null
+);
+
+create table project_context_items (
+  id text primary key,
+  project_id text not null references projects on delete cascade,
+  section text not null,        -- 'stack' | 'decision' | 'idea'
+  text text not null,
+  source text not null,         -- 'ai' | 'user'
+  entry_ids text not null default '[]',  -- JSON array of the entries it came from
+  created_at text not null
+);
+
+create table entry_links (
+  source_id text not null references entries on delete cascade,
+  target_id text not null references entries on delete cascade,
+  weight real not null,
+  primary key (source_id, target_id)
+);
+
+create table entry_corrections (  -- what the user changed after Claude sorted
+  id text primary key,
+  entry_id text not null references entries on delete cascade,
+  field text not null,
+  old_value text,
+  new_value text,
+  created_at text not null
+);
+
+create virtual table entries_fts using fts5(
+  content, keywords, content='entries', content_rowid='rowid',
+  tokenize='unicode61 remove_diacritics 2'
+);
+```
+
+**Indexes.** `entries (created_at desc)` for the Inbox, `entries (project_id)`, `captures (status)` for unsorted thoughts, unique `captures (content_hash)`, unique `project_context_items (project_id, section, lower(text))` against duplicates.
+
+**Context rules (unchanged from v0.5.0).** Claude appends to lists and proposes summary/status changes; anything the user edited by hand (`source = 'user'`) wins and is never overwritten. Every AI context item keeps the entries it came from, so the page can show "from N notes".
+
+## How thoughts get in
+
+**1. From a Claude conversation (main path).** At the end of a conversation in Claude Desktop the user says "save this to Engram". Claude already understands the conversation, so it does the sorting itself and calls `save_to_engram` with ready entries and context updates. Engram validates them, writes the capture, entries and context items in one transaction, builds keyword links, and the open app refreshes. No second model is involved.
+
+**2. Typed in Engram.** The hotkey panel saves the text instantly as an `unsorted` capture with one `note` entry. Unsorted thoughts are filed when the user asks Claude "sort my Engram inbox": Claude calls `list_unsorted`, then `sort_capture` for each one. Until then they sit in the Inbox as plain notes, so nothing is lost.
+
+**Review gate.** Entries Claude marks with low confidence, or with no matching project, get `needs_review` and show the "not sure" card in the Inbox. Claude never creates projects on its own; it may suggest a name on the card, and creating it is one click.
+
+## Claude connector (MCP tools)
+
+| Tool                  | What it does                                                                                                                                                                                      |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `save_to_engram`      | Save a conversation summary: `summary`, `entries[]` (kind, content, projectSlug, dueAt, url, confidence, keywords), optional `contextUpdates[]`, optional `conversationRef`. Rejects a duplicate. |
+| `list_projects`       | Projects with slug, summary and status, so Claude can match entries                                                                                                                               |
+| `get_project_context` | One project's summary, status, stack, decisions, open ideas and open tasks                                                                                                                        |
+| `search_entries`      | Full-text search with optional project and kind filters, newest first on ties                                                                                                                     |
+| `list_tasks`          | Open tasks, optionally per project or due before a date                                                                                                                                           |
+| `list_unsorted`       | Typed thoughts waiting to be sorted                                                                                                                                                               |
+| `sort_capture`        | File one unsorted capture, with the same entry shape as `save_to_engram`                                                                                                                          |
+
+Tool inputs are validated in EngramKit: unknown project slugs become `needs_review`, dates must parse, content is trimmed and length-capped. The tool descriptions carry the sorting instructions the Phase 3 prompt used to hold: kinds, local time and time zone for "Friday", one entry per idea or task, the user's language.
+
+**Connecting.** Settings has "Connect to Claude Desktop", which adds the helper to Claude Desktop's MCP config after the user confirms (or installs it as a Desktop Extension; decided in Phase 7). "Disconnect" removes it.
+
+## Build phases
+
+Versions continue from the web app: each shipped phase bumps the minor version. Each phase is planned, built, demoed and explicitly approved before the next starts.
+
+```mermaid
+flowchart LR
+  P6[6 · Native foundation] -->|OK| P7[7 · Claude connector + search] -->|OK| P8[8 · Projects + live context]
+  P8 -->|OK| P9[9 · Brain graph] -->|OK| P10[10 · Open-source launch]
+```
+
+**Rules for every phase:** stay inside the phase scope, keep build, lint and tests green, add tests for logic that can break silently, commit in small conventional commits, and end with a short report.
+
+### Phase 6 — Native foundation (0.6.0)
+
+Goal: a real Mac app you can already use as a quick notebook.
+
+- Replace the web app on `demo` with an Xcode project: app target, `engram-mcp` target (empty for now), `EngramKit` package
+- Design tokens from the mockups as SwiftUI colors and styles (dark, Geist, project palette)
+- App shell: sidebar with Inbox, Projects, Brain (empty states for the last two); menu-bar icon
+- SQLite via GRDB with migrations for the schema above
+- Global-hotkey capture panel: focused on open, Enter saves, Esc closes; saved as an unsorted note
+- Inbox: latest entries, kind filter, manual project assignment, create a project inline
+- Format/lint (`swift format`), tests, build/test scripts, CI on GitHub Actions (macOS runner, `chore` commits only)
 
 Done when:
 
-- [ ] `pnpm dev` runs and every route renders in the new shell on desktop and phone width
-- [ ] CI is green on push to `demo`
+- [ ] From pressing the hotkey anywhere to a saved thought takes under 3 seconds
+- [ ] Thoughts survive quitting and relaunching; no Docker, server or login involved
 
-### Phase 1 — Auth & data model
+### Phase 7 — Claude connector + search (0.7.0)
 
-Goal: a secure database you can sign in to.
+Goal: talk with Claude, say "save this to Engram", and it shows up sorted.
 
-- Migrations for the schema above, RLS policies, private `audio` bucket
-- Generated TypeScript types from the database
-- Email + password sign-in, protected routes, sign-out
-- Seed script with a few sample projects
-
-Done when:
-
-- [ ] You can sign in on the phone and the laptop
-- [ ] A test proves user A cannot read or write user B's rows
-
-### Phase 2 — Text capture, Inbox & PWA
-
-Goal: you can start using Engram as a plain notebook.
-
-- Capture screen: text input focused on open, save with one tap or ⌘Enter
-- Each capture creates one `note` entry (no AI yet)
-- Inbox feed with type filters and manual project assignment
-- PWA manifest, icons, installable on iPhone; optimistic UI
+- `engram-mcp` over stdio with the tools above; validation and save rules in EngramKit
+- "Connect to Claude Desktop" in Settings
+- Live refresh of the open app after helper writes (Darwin notification)
+- FTS5 search: `search_entries` tool and ⌘K in the app
+- Keyword links between entries (≥ 2 shared keywords), stored for the graph
+- "Not sure" cards and corrections in the Inbox
+- Eval: 10 sample conversations saved through the tool by Claude, checked by hand
 
 Done when:
 
-- [ ] From tapping the home-screen icon to a saved thought takes under 3 seconds
-- [ ] A thought saved on the phone appears in the Inbox on the laptop
+- [ ] A conversation in Claude Desktop ends with "save this to Engram", and the summary appears as sorted entries in the Inbox within seconds, without touching Engram
+- [ ] "Sort my Engram inbox" files typed thoughts
+- [ ] Asking Claude "what did I decide about X?" answers from Engram with the right entries
 
-### Phase 3 — AI sorting
+### Phase 8 — Projects & live context (0.8.0)
 
-Goal: captures sort themselves.
+Goal: every project has a page that keeps itself up to date (port of v0.5.0).
 
-- Provider layer on the Vercel AI SDK, models set in env
-- Pipeline steps 1, 3, 4 and 7: split into entries, kind, project, due date, confidence
-- "Not sure" review cards in the Inbox; corrections saved
-- Retry sweep via Vercel Cron; token usage logged per call
-
-Done when:
-
-- [ ] On a fixture set of 20 real captures, at least 17 land in the right project (proposed bar)
-- [ ] Cost per capture is measured and written in the phase report
-
-### Phase 4 — Voice capture (dropped)
-
-Dropped on 2026-11-04. Recording and transcribing inside Engram would need a second AI provider and API key just for speech, which is a barrier for an open-source project. Voice still works without it:
-
-- Keyboard dictation (iOS and Android) types straight into the Capture field, free and in Russian too
-- Talking with Claude in its own app and saving the summary to Engram is part of Phase 9
-
-### Phase 5 — Projects & live context
-
-Goal: every project has a page that keeps itself up to date.
-
-- Projects list; project page with summary, stack, decisions, open ideas, tasks
-- Context updater (pipeline step 6) with "user edits win"
-- Create, rename, recolor, archive; tick tasks
+- Projects list and project page: summary, status, stack, decisions, open ideas with "from N notes", tasks with checkboxes
+- Context updates from `save_to_engram`, with "user edits win"
+- `get_project_context` and `list_tasks` return the live context
+- Create, rename, recolor, archive
 
 Done when:
 
-- [ ] Talking about a project in a capture updates its page without you opening it
-- [ ] A hand-edited field survives the next AI update
+- [ ] Talking about a project with Claude updates its page without opening it
+- [ ] A hand-edited field survives the next update from Claude
 
-### Phase 6 — Search & Ask
-
-Goal: ask your brain anything.
-
-- Embeddings on processing + a backfill script; HNSW index
-- Semantic links between entries (pipeline step 5)
-- Hybrid search, ⌘K search on desktop
-- Ask screen: streaming answers with cited source cards
-
-Done when:
-
-- [ ] "What did I think about X?" answers correctly and cites the right entries on 10 test questions
-
-### Phase 7 — Brain graph
+### Phase 9 — Brain graph (0.9.0)
 
 Goal: the 3D graph from the mockup, on real data.
 
-- Pick the library (react-three-fiber vs 3d-force-graph) with a short comparison first
-- Nodes = entries, clusters = projects, edges = project membership + semantic links
-- Auto-rotate, drag, zoom, hover label, click opens the side panel
-- Lighter mobile mode if WebGL performance is poor
+- Pick SceneKit vs RealityKit with a short comparison first
+- Nodes = entries, clusters = projects, edges = project membership + keyword links
+- Auto-rotate, drag, zoom, hover label, click opens the project
 
 Done when:
 
 - [ ] 2,000 nodes stay smooth on the MacBook
-- [ ] The graph is usable on the iPhone
 
-### Phase 8 — Open-source launch
+### Phase 10 — Open-source launch (0.10.0)
 
-Goal: a stranger can set it up and wants to star it.
+Goal: a stranger installs it and wants to star it.
 
-- README: hook, demo GIF, screenshots, features, stack
-- Self-host guide: Supabase project + Vercel deploy, all env vars explained
+- README: hook, demo GIF, screenshots, features
+- Release workflow: build, ad-hoc sign, zip/DMG, attach to a GitHub Release; install steps including the quarantine command
 - Markdown / Obsidian export (one file per entry, front matter, folder per project)
-- CONTRIBUTING, issue templates, roadmap section
+- CONTRIBUTING, issue templates, roadmap
 
 Done when:
 
-- [ ] Someone who never saw the code gets a running instance from the README in under 15 minutes
+- [ ] Someone who never saw the code installs a release and saves a thought from Claude in under 10 minutes
 
-### Phase 9 — Claude connector (MCP)
+After Phase 10: merge `demo` into `main`, then `dev` for further work; 1.0.0 when Mikhail calls it stable.
 
-Goal: talk things through with Claude in the Claude app, then say "save this to my second brain".
+## Post-MVP, in rough priority
 
-- Remote MCP server in the Engram app (Streamable HTTP route), so it works in the Claude apps on phone and desktop, including voice mode
-- Write tool `save_to_engram`: Claude sends a summary of the conversation (what was discussed, decisions, ideas, tasks); it becomes a normal capture and goes through the sorting pipeline
-- Read tools: `search_entries`, `get_project_context`, `list_tasks`, so Claude starts with your context
-- Sign-in through OAuth for the connector, scoped to the single user of the instance; every call goes through RLS
-- Built on `dev` after the MVP merge; released as `0.9.0`
-
-Done when:
-
-- [ ] In the Claude iPhone app, a voice conversation ends with "save this to Engram", and the summary shows up as sorted entries in the Inbox
-- [ ] Asking Claude about a project returns its live context from Engram
-
-## Open source & post-MVP
-
-The repo is public from day one, MIT-licensed, with the README growing phase by phase so launch day is not a rewrite.
-
-**What makes it star-worthy:** a 20-second demo GIF (talk → sorted → graph), one-click Vercel deploy button, a self-host guide that takes under 15 minutes, "bring any model", and "your data stays yours" (Markdown export).
-
-**Post-MVP, in rough priority:**
-
-1. **MCP server.** Moved into Phase 9 (Claude connector), required before 1.0.0.
-2. **Today screen.** A morning summary of tasks due, recent ideas and stale projects.
-3. **Reminders.** Web push for due tasks.
-4. **Capture from anywhere.** An iOS Shortcut and a browser extension that post to the capture API.
-5. **Imports.** Obsidian vault and Apple Notes.
-6. **Hosted multi-user version.** Only if the project gets traction; needs encrypted per-user API keys and billing.
+1. **iPhone.** Talking to Claude on the phone while the Mac is off. Open options: a scheduled Claude task that writes into a folder connected through the desktop app (scheduled tasks run in the cloud and reach connected folders only while the desktop app is open), an iCloud Drive inbox folder fed by an iOS Shortcut, or a tunnel to the connector.
+2. **Optional in-app sorting** with the user's own API key, for people who don't use Claude Desktop.
+3. **Today screen** and **reminders** for due tasks.
+4. **Imports.** Obsidian vault, Apple Notes.
+5. **Windows.**
 
 ## Risks & open questions
 
-The biggest risk is not technical: it is the project growing faster than it gets used, which the phase gates exist to prevent.
-
-| Risk                                 | Mitigation                                                                                                 |
-| ------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
-| Scope creep, the app never gets used | One phase at a time; a phase starts only after the previous one is in daily use                            |
-| Wrong sorting erodes trust           | Confidence threshold, "not sure" cards, one-tap correction; corrections can later become few-shot examples |
-| LLM cost per capture                 | Small model for sorting, usage logged from Phase 3, batching if needed                                     |
-| iOS PWA limits                       | Test on a real iPhone each phase; mp4/aac audio; no share target on iOS, so an iOS Shortcut later          |
-| Embedding model lock-in              | Model fixed per instance; re-embed script ships with Phase 6                                               |
-| 3D graph performance on phones       | Lighter mobile mode decided in Phase 7                                                                     |
-
-**Open questions**
-
-- [ ] Is the name "Engram" free on GitHub, npm and a domain you like?
-- [ ] Default LLM provider for sorting and Ask (Anthropic, OpenAI, or both)?
-- [ ] Supabase cloud free tier or local Docker for your own instance?
-- [ ] How many hours per week can you put into building?
+- In a test on 2026-11-05 a scheduled Claude task could not see that day's chats (it only read memory), so collecting conversations automatically is not part of the MVP.
+- Save quality depends on Claude following the tool descriptions; the Phase 7 eval checks it.
+- The biggest risk is still the project growing faster than it gets used, which the phase gates exist to prevent.
