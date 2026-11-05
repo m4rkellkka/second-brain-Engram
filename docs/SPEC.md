@@ -71,7 +71,7 @@ flowchart LR
 
 ## Data model
 
-Single user, so there is no `user_id`, auth or row-level security. Ids are UUID strings; times are ISO 8601 in UTC.
+Single user, so there is no `user_id`, auth or row-level security. Ids are lowercase UUID strings; times are UTC text in GRDB's default `YYYY-MM-DD HH:MM:SS.SSS` format, which sorts correctly and works with SQLite date functions.
 
 ```sql
 create table projects (
@@ -148,7 +148,7 @@ create virtual table entries_fts using fts5(
 );
 ```
 
-**Indexes.** `entries (created_at desc)` for the Inbox, `entries (project_id)`, `captures (status)` for unsorted thoughts, unique `captures (content_hash)`, unique `project_context_items (project_id, section, lower(text))` against duplicates.
+**Indexes.** `entries (created_at desc)` for the Inbox, `entries (project_id)`, `captures (status)` for unsorted thoughts, unique `captures (content_hash) where source = 'claude'` (typing the same thought twice is fine), unique `project_context_items (project_id, section, lower(text))` against duplicates.
 
 **Context rules (unchanged from v0.5.0).** Claude appends to lists and proposes summary/status changes; anything the user edited by hand (`source = 'user'`) wins and is never overwritten. Every AI context item keeps the entries it came from, so the page can show "from N notes".
 
