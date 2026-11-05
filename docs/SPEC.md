@@ -40,7 +40,7 @@ flowchart LR
   end
   subgraph App["Engram.app"]
     UI[SwiftUI windows + menu-bar capture]
-    MCP[engram-mcp helper · stdio]
+    MCP[Engram --mcp · stdio connector]
     KIT[[EngramKit: models, rules, queries]]
   end
   DB[(engram.sqlite · WAL)]
@@ -52,7 +52,7 @@ flowchart LR
 ```
 
 - **Engram.app** is a SwiftUI app with a main window (Inbox, Projects, Brain) and a `MenuBarExtra` with a capture field.
-- **engram-mcp** is a small command-line helper shipped inside the app bundle. Claude Desktop starts it as a local MCP server over stdio. It is a separate process, so it opens the same database file and posts a Darwin notification after each write so the open app refreshes.
+- **The connector** is the same `Engram` executable started with `--mcp`: then it runs no UI and serves MCP over stdin/stdout. Claude Desktop starts it as a local MCP server. It is a separate process, so it opens the same database file and posts a Darwin notification after each write so the open app refreshes. Reusing the app binary means no second target, no embedding step and no second signature.
 - **EngramKit** is a local Swift package with everything both targets share: schema and migrations, save and context rules, search. All logic lives here so it can be tested with `swift test` without the UI.
 
 | Layer        | Choice                                                  | Why                                                                          |
@@ -65,7 +65,7 @@ flowchart LR
 | Tests        | Swift Testing in EngramKit                              | Test where bugs live: save rules, context rules, search, MCP input checks    |
 | Distribution | GitHub Releases: zipped or DMG `.app`, ad-hoc signed    | No paid Apple Developer account needed; install steps documented             |
 
-**Where the data lives.** `~/Library/Application Support/Engram/engram.sqlite`. The app is not sandboxed (it is not distributed through the App Store), so the helper and the app can share that file.
+**Where the data lives.** `~/Library/Application Support/Engram/engram.sqlite`. The app is not sandboxed (it is not distributed through the App Store), so the connector process and the app can share that file.
 
 **Installing without a paid developer account.** The release is ad-hoc signed but not notarized. After moving `Engram.app` to `/Applications`, the user runs `xattr -dr com.apple.quarantine /Applications/Engram.app` once (or uses System Settings → Privacy & Security → Open Anyway). Building from source in Xcode needs neither. Notarization is a later decision.
 
@@ -112,6 +112,7 @@ create table entries (
   done_at text,
   confidence real,
   needs_review integer not null default 0,
+  suggested_project text,       -- project name Claude proposes when nothing matches (added in v2)
   created_at text not null,
   updated_at text not null
 );
@@ -164,9 +165,9 @@ create virtual table entries_fts using fts5(
 
 | Tool                  | What it does                                                                                                                                                                                      |
 | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `save_to_engram`      | Save a conversation summary: `summary`, `entries[]` (kind, content, projectSlug, dueAt, url, confidence, keywords), optional `contextUpdates[]`, optional `conversationRef`. Rejects a duplicate. |
+| `save_to_engram`      | Save a conversation summary: `summary`, `entries[]` (kind, content, projectSlug, suggestedProject, dueAt, url, confidence, keywords), optional `conversationRef` and `timeZone`; `contextUpdates[]` arrive in Phase 8. A duplicate summary is reported, not saved again. |
 | `list_projects`       | Projects with slug, summary and status, so Claude can match entries                                                                                                                               |
-| `get_project_context` | One project's summary, status, stack, decisions, open ideas and open tasks                                                                                                                        |
+| `get_project_context` | One project's summary, status, open tasks and recent entries; stack, decisions and ideas from Phase 8 |
 | `search_entries`      | Full-text search with optional project and kind filters, newest first on ties                                                                                                                     |
 | `list_tasks`          | Open tasks, optionally per project or due before a date                                                                                                                                           |
 | `list_unsorted`       | Typed thoughts waiting to be sorted                                                                                                                                                               |
@@ -174,7 +175,7 @@ create virtual table entries_fts using fts5(
 
 Tool inputs are validated in EngramKit: unknown project slugs become `needs_review`, dates must parse, content is trimmed and length-capped. The tool descriptions carry the sorting instructions the Phase 3 prompt used to hold: kinds, local time and time zone for "Friday", one entry per idea or task, the user's language.
 
-**Connecting.** Settings has "Connect to Claude Desktop", which adds the helper to Claude Desktop's MCP config after the user confirms (or installs it as a Desktop Extension; decided in Phase 7). "Disconnect" removes it.
+**Connecting.** Settings has "Connect to Claude Desktop", which adds `Engram --mcp` to `~/Library/Application Support/Claude/claude_desktop_config.json` (keeping every other setting and saving a backup first). "Disconnect" removes it. The entry points at the app's current location, so moving `Engram.app` means connecting again. A one-click Desktop Extension (`.mcpb`) is planned for Phase 10.
 
 ## Build phases
 
@@ -209,13 +210,14 @@ Done when:
 
 Goal: talk with Claude, say "save this to Engram", and it shows up sorted.
 
-- `engram-mcp` over stdio with the tools above; validation and save rules in EngramKit
+- `Engram --mcp` over stdio with the tools above (MCP Swift SDK); validation and save rules in EngramKit
 - "Connect to Claude Desktop" in Settings
 - Live refresh of the open app after helper writes (Darwin notification)
 - FTS5 search: `search_entries` tool and ⌘K in the app
 - Keyword links between entries (≥ 2 shared keywords), stored for the graph
 - "Not sure" cards and corrections in the Inbox
-- Eval: 10 sample conversations saved through the tool by Claude, checked by hand
+- Migration v2: `entries.suggested_project` for the "not sure" card
+- Eval: 10 sample conversations saved through the connector by Claude (`claude -p` against a test database), checked by hand
 
 Done when:
 
@@ -228,7 +230,7 @@ Done when:
 Goal: every project has a page that keeps itself up to date (port of v0.5.0).
 
 - Projects list and project page: summary, status, stack, decisions, open ideas with "from N notes", tasks with checkboxes
-- Context updates from `save_to_engram`, with "user edits win"
+- `contextUpdates[]` in `save_to_engram`, with "user edits win"
 - `get_project_context` and `list_tasks` return the live context
 - Create, rename, recolor, archive
 
@@ -266,12 +268,13 @@ After Phase 10: merge `demo` into `main`, then `dev` for further work; 1.0.0 whe
 
 ## Post-MVP, in rough priority
 
-1. **iPhone.** Talking to Claude on the phone while the Mac is off. Open options: a scheduled Claude task that writes into a folder connected through the desktop app (scheduled tasks run in the cloud and reach connected folders only while the desktop app is open), an iCloud Drive inbox folder fed by an iOS Shortcut, or a tunnel to the connector.
-2. **Optional in-app sorting** with the user's own API key, for people who don't use Claude Desktop.
-3. **Global hotkey** and **launch at login.**
-4. **Today screen** and **reminders** for due tasks.
-5. **Imports.** Obsidian vault, Apple Notes.
-6. **Windows.**
+1. **Desktop Extension (`.mcpb`)** for one-click connecting, with the Phase 10 release work.
+2. **iPhone.** Talking to Claude on the phone while the Mac is off. Open options: a scheduled Claude task that writes into a folder connected through the desktop app (scheduled tasks run in the cloud and reach connected folders only while the desktop app is open), an iCloud Drive inbox folder fed by an iOS Shortcut, or a tunnel to the connector.
+3. **Optional in-app sorting** with the user's own API key, for people who don't use Claude Desktop.
+4. **Global hotkey** and **launch at login.**
+5. **Today screen** and **reminders** for due tasks.
+6. **Imports.** Obsidian vault, Apple Notes.
+7. **Windows.**
 
 ## Risks & open questions
 
