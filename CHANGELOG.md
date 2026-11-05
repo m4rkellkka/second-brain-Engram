@@ -6,6 +6,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-11-05
+
+### Added
+
+- Brain: a 3D graph of every entry, clustered by project, with keyword links between related entries. It turns slowly on its own; drag to turn, scroll or pinch to zoom, hover a dot to read the entry, click to open its project.
+- A legend with each project's color and number of entries.
+- The graph updates when Claude saves something.
+- `make demo-graph` opens the graph on 2,000 synthetic entries to check performance (60 fps on a MacBook).
+
 ## [0.8.0] - 2026-11-05
 
 ### Added
@@ -159,7 +168,8 @@ Engram is now a native macOS app. The Next.js + Supabase web app (0.1.0–0.5.0)
 - GitHub Actions CI: lint, format check, typecheck and build.
 - MIT license.
 
-[Unreleased]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.8.0...HEAD
+[Unreleased]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.5.0...v0.6.0
