@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version" src="https://img.shields.io/badge/version-0.7.0-8B9CFF">
+  <img alt="Version" src="https://img.shields.io/badge/version-0.8.0-8B9CFF">
   <img alt="Status" src="https://img.shields.io/badge/status-in%20development-F2A65A">
   <img alt="License" src="https://img.shields.io/badge/license-MIT-3FD0B6">
   <img alt="Platform" src="https://img.shields.io/badge/macOS-15%2B-EDEDF0">
@@ -21,8 +21,8 @@
 ---
 
 > **Work in progress.** Engram is being built in public, one phase at a time.
-> Today: capture from the menu bar, an Inbox, search, and a Claude Desktop connector
-> that saves your conversations into projects. Live project pages and the 3D graph are next.
+> Today: capture from the menu bar, an Inbox, search, a Claude Desktop connector that
+> saves your conversations, and project pages that keep themselves up to date. The 3D graph is next.
 
 ## Why
 
@@ -41,7 +41,7 @@ your projects. Manual systems fail because filing is work and the payoff comes l
 | 0–5   | Web app (Next.js + Supabase), kept on `web-archive`     | ✅ v0.5.0 |
 | 6     | Native foundation: menu-bar capture, Inbox, projects    | ✅ v0.6.0 |
 | 7     | Claude connector (MCP) and search                       | ✅ v0.7.0 |
-| 8     | Projects with live context                              | ⏳        |
+| 8     | Projects with live context                              | ✅ v0.8.0 |
 | 9     | Brain graph (3D)                                        | ⏳        |
 | 10    | Open-source launch: releases, export, install guide     | ⏳        |
 

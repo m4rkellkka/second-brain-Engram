@@ -1,6 +1,6 @@
 # Progress
 
-**Current version:** 0.7.0 · **Current phase:** Phase 8 — Projects & live context · status: **not started**
+**Current version:** 0.8.0 · **Current phase:** Phase 9 — Brain graph · status: **not started**
 
 Engram was rebuilt as a native macOS app on 2026-11-05 (see `docs/SPEC.md`). Phases 0–5 shipped the Next.js + Supabase web app, kept on the `web-archive` branch.
 
@@ -9,7 +9,7 @@ Engram was rebuilt as a native macOS app on 2026-11-05 (see `docs/SPEC.md`). Pha
 | 0–5   | Web app (Next.js + Supabase) | done (v0.1.0 – v0.5.0) |
 | 6     | Native foundation            | done (v0.6.0)          |
 | 7     | Claude connector + search    | done (v0.7.0)          |
-| 8     | Projects & live context      | —                      |
+| 8     | Projects & live context      | done (v0.8.0)          |
 | 9     | Brain graph                  | —                      |
 | 10    | Open-source launch           | —                      |
 
@@ -38,6 +38,18 @@ Engram was rebuilt as a native macOS app on 2026-11-05 (see `docs/SPEC.md`). Pha
 - [x] 61 tests; `make eval-connector`
 - [x] Eval on 2026-11-05 (Sonnet, `claude -p`): 10/10 conversations filed correctly, both questions answered correctly after the local-time fix
 - [x] CHANGELOG, README, release v0.7.0
+
+## Phase 8 checklist (done)
+
+- [x] Bulk filing: creating a suggested project files every entry with that suggestion
+- [x] Migration v3 (`dismissed_at`); `contextUpdates` in `save_to_engram` and `sort_capture`; items point at entries by index
+- [x] Rules: Claude only adds, repeats skipped, user summary/status kept, removed items not re-added
+- [x] Hand edits: summary/status ("Let Claude update"), add/edit/remove items, rename (slug kept), recolor, archive
+- [x] Projects list and live project page; task checkboxes on the page and in the Inbox; Inbox and ⌘K open projects
+- [x] `get_project_context` returns the full live context
+- [x] 73 tests; eval extended with 3 context conversations
+- [x] Eval on 2026-11-05: user-written Tamam summary kept, status and new items added, repeated decision not duplicated
+- [x] CHANGELOG, README, release v0.8.0
 
 ## Environments
 
@@ -109,11 +121,13 @@ Rows before 2026-11-05 describe the web app (now on the `web-archive` branch).
 | 2026-11-05 | Below 0.7 confidence or no matching project → "not sure"; Claude never creates projects  | Same rule as the web app                                                                               |
 | 2026-11-05 | Tool results use local time; date-only deadlines come back as plain dates                 | Eval: Claude read a UTC midnight deadline as "today 21:00"                                             |
 | 2026-11-05 | Search index stores text with "ё" → "е"                                                   | unicode61 doesn't fold Cyrillic "ё"; people type both                                                  |
+| 2026-11-05 | Context items point at entries by index in the same call                                   | Claude knows indexes before the entries have ids                                                       |
+| 2026-11-05 | Removed context items stay as tombstones (`dismissed_at`)                                 | Otherwise Claude re-adds what the user removed                                                         |
+| 2026-11-05 | "Create <suggested project>" files all matching "not sure" entries                        | Mikhail's first real save: 29 entries, no projects yet, 29 clicks                                       |
+| 2026-11-05 | Project rename keeps the slug                                                             | Claude and links keep working                                                                          |
 
 ## Open questions
 
-- [ ] Phase 6 "done when" (under 3 seconds from the menu-bar icon) needs Mikhail's hand check: keystrokes can't be automated here without Accessibility permission
-- [ ] Phase 7 hand check by Mikhail: Connect in Settings, restart Claude Desktop, "save this to Engram" in a real chat (the eval used the claude CLI, not the Desktop app)
 - [ ] Entries from one save show newest-first in the Inbox, so their order is reversed; fine for now, revisit with project pages
 - [ ] Is "Engram" free on GitHub and as a Mac app name?
 - [ ] iPhone path while the Mac is off (see SPEC → Post-MVP): scheduled task into a connected folder, iCloud Drive inbox via a Shortcut, or a tunnel

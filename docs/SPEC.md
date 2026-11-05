@@ -124,6 +124,7 @@ create table project_context_items (
   text text not null,
   source text not null,         -- 'ai' | 'user'
   entry_ids text not null default '[]',  -- JSON array of the entries it came from
+  dismissed_at text,            -- removed by the user; kept so Claude doesn't add it again (v3)
   created_at text not null
 );
 
@@ -159,7 +160,7 @@ create virtual table entries_fts using fts5(
 
 **2. Typed in Engram.** The capture field saves the text instantly as an `unsorted` capture with one `note` entry. Unsorted thoughts are filed when the user asks Claude "sort my Engram inbox": Claude calls `list_unsorted`, then `sort_capture` for each one. Until then they sit in the Inbox as plain notes, so nothing is lost.
 
-**Review gate.** Entries Claude marks with low confidence, or with no matching project, get `needs_review` and show the "not sure" card in the Inbox. Claude never creates projects on its own; it may suggest a name on the card, and creating it is one click.
+**Review gate.** Entries Claude marks with low confidence, or with no matching project, get `needs_review` and show the "not sure" card in the Inbox. Claude never creates projects on its own; it may suggest a name on the card, and creating it is one click. Creating a suggested project files every unfiled "not sure" entry with the same suggestion.
 
 ## Claude connector (MCP tools)
 
