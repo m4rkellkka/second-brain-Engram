@@ -1,6 +1,6 @@
 # Progress
 
-**Current version:** 0.5.0 · **Current phase:** Phase 6 — Native foundation · status: **planning**
+**Current version:** 0.5.0 · **Current phase:** Phase 6 — Native foundation · status: **in progress**
 
 Engram was rebuilt as a native macOS app on 2026-11-05 (see `docs/SPEC.md`). Phases 0–5 shipped the Next.js + Supabase web app, kept on the `web-archive` branch.
 
@@ -83,5 +83,6 @@ Rows before 2026-11-05 describe the web app (now on the `web-archive` branch).
 - Claude scheduled task triggered by API from Engram (Mikhail, 2026-11-05), once a task can reach the connector or a connected folder
 - Optional in-app sorting with the user's own API key
 - Today screen, reminders, Obsidian and Apple Notes import
+- Global hotkey for capture (⌘⇧Space in the mockups) and launch at login (Mikhail, 2026-11-05: not now)
 - Windows version
 - Notarized releases and a Homebrew cask

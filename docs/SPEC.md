@@ -4,13 +4,13 @@
 
 ## Overview
 
-Engram is an open-source second brain that lives on your Mac. You think out loud with Claude (by voice or text) and say "save this to Engram", or you jot a thought with a global hotkey. Engram files everything into the right project, keeps each project's context up to date, and shows it all as a 3D graph.
+Engram is an open-source second brain that lives on your Mac. You think out loud with Claude (by voice or text) and say "save this to Engram", or you jot a thought from the menu bar. Engram files everything into the right project, keeps each project's context up to date, and shows it all as a 3D graph.
 
 **The problem.** Ideas get lost, notes live nowhere, and every AI tool starts from zero about your projects. Manual systems like Obsidian or Notion fail because filing is work and the payoff comes late.
 
 **Product principles**
 
-- **Capture in under 3 seconds.** A global hotkey opens a capture panel from anywhere; Enter saves it. No folders, tags or required fields.
+- **Capture in under 3 seconds.** The menu-bar icon opens a capture field from anywhere; Enter saves it. No folders, tags or required fields.
 - **Claude does the thinking.** Conversations happen in Claude Desktop; Claude sorts what you said and saves it through Engram's connector. Engram itself needs no API key and costs nothing to run: AI work uses your Claude subscription.
 - **Local and simple.** One `.app`, one SQLite file on disk. No Docker, no server, no account, no cloud.
 - **Your data, plain and portable.** One-click Markdown export.
@@ -20,7 +20,7 @@ Engram is an open-source second brain that lives on your Mac. You think out loud
 
 | Surface          | What it does                                                        | Key interactions                                   |
 | ---------------- | ------------------------------------------------------------------- | -------------------------------------------------- |
-| Quick capture    | Floating panel from a global hotkey or the menu-bar icon            | Type or dictate (macOS dictation), Enter to save   |
+| Quick capture    | Capture field in the menu-bar popover and in the main window (⌘N)   | Type or dictate (macOS dictation), Enter to save   |
 | Inbox            | Feed of recent entries; typed thoughts wait here until Claude sorts | Filter by kind, fix project, resolve "not sure"    |
 | Projects         | Project page with a live context Claude keeps updated               | Edit context, tick tasks, rename, recolor, archive |
 | Search           | ⌘K full-text search over all entries                                | Type, jump to an entry or project                  |
@@ -29,7 +29,7 @@ Engram is an open-source second brain that lives on your Mac. You think out loud
 
 There is no Ask screen: asking your brain is a conversation with Claude, which searches Engram through the connector.
 
-**Out of scope for the MVP:** Windows and Linux, an iPhone app, sync between devices, reminders and notifications, a Today screen, imports (Obsidian, Apple Notes), an in-app LLM provider. See Post-MVP.
+**Out of scope for the MVP:** a global hotkey and launch at login, Windows and Linux, an iPhone app, sync between devices, reminders and notifications, a Today screen, imports (Obsidian, Apple Notes), an in-app LLM provider. See Post-MVP.
 
 ## Architecture
 
@@ -51,20 +51,19 @@ flowchart LR
   MCP -. Darwin notification .-> UI
 ```
 
-- **Engram.app** is a SwiftUI app with a main window (Inbox, Projects, Brain), a `MenuBarExtra` and a global-hotkey capture panel.
+- **Engram.app** is a SwiftUI app with a main window (Inbox, Projects, Brain) and a `MenuBarExtra` with a capture field.
 - **engram-mcp** is a small command-line helper shipped inside the app bundle. Claude Desktop starts it as a local MCP server over stdio. It is a separate process, so it opens the same database file and posts a Darwin notification after each write so the open app refreshes.
 - **EngramKit** is a local Swift package with everything both targets share: schema and migrations, save and context rules, search. All logic lives here so it can be tested with `swift test` without the UI.
 
-| Layer         | Choice                                                   | Why                                                                          |
-| ------------- | -------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| App           | Swift 6, SwiftUI, macOS 15+                              | Native, fast, menu-bar and hotkey support                                    |
-| Storage       | SQLite via GRDB.swift, WAL mode                          | Explicit migrations, FTS5 full-text search, safe access from two processes   |
-| Connector     | MCP Swift SDK (`modelcontextprotocol/swift-sdk`), stdio  | Official SDK; stdio needs no ports, tokens or network                        |
-| Search        | SQLite FTS5 (`unicode61`, prefix search)                 | Works for mixed Russian and English, no embeddings and no second AI provider |
-| 3D graph      | SceneKit or RealityKit (decided in its phase)            | Native GPU rendering, no web view                                            |
-| Global hotkey | Decided in Phase 6 (KeyboardShortcuts package or Carbon) | User-rebindable shortcut                                                     |
-| Tests         | Swift Testing in EngramKit                               | Test where bugs live: save rules, context rules, search, MCP input checks    |
-| Distribution  | GitHub Releases: zipped or DMG `.app`, ad-hoc signed     | No paid Apple Developer account needed; install steps documented             |
+| Layer        | Choice                                                  | Why                                                                          |
+| ------------ | ------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| App          | Swift 6, SwiftUI, macOS 15+                             | Native, fast, menu-bar and hotkey support                                    |
+| Storage      | SQLite via GRDB.swift, WAL mode                         | Explicit migrations, FTS5 full-text search, safe access from two processes   |
+| Connector    | MCP Swift SDK (`modelcontextprotocol/swift-sdk`), stdio | Official SDK; stdio needs no ports, tokens or network                        |
+| Search       | SQLite FTS5 (`unicode61`, prefix search)                | Works for mixed Russian and English, no embeddings and no second AI provider |
+| 3D graph     | SceneKit or RealityKit (decided in its phase)           | Native GPU rendering, no web view                                            |
+| Tests        | Swift Testing in EngramKit                              | Test where bugs live: save rules, context rules, search, MCP input checks    |
+| Distribution | GitHub Releases: zipped or DMG `.app`, ad-hoc signed    | No paid Apple Developer account needed; install steps documented             |
 
 **Where the data lives.** `~/Library/Application Support/Engram/engram.sqlite`. The app is not sandboxed (it is not distributed through the App Store), so the helper and the app can share that file.
 
@@ -157,7 +156,7 @@ create virtual table entries_fts using fts5(
 
 **1. From a Claude conversation (main path).** At the end of a conversation in Claude Desktop the user says "save this to Engram". Claude already understands the conversation, so it does the sorting itself and calls `save_to_engram` with ready entries and context updates. Engram validates them, writes the capture, entries and context items in one transaction, builds keyword links, and the open app refreshes. No second model is involved.
 
-**2. Typed in Engram.** The hotkey panel saves the text instantly as an `unsorted` capture with one `note` entry. Unsorted thoughts are filed when the user asks Claude "sort my Engram inbox": Claude calls `list_unsorted`, then `sort_capture` for each one. Until then they sit in the Inbox as plain notes, so nothing is lost.
+**2. Typed in Engram.** The capture field saves the text instantly as an `unsorted` capture with one `note` entry. Unsorted thoughts are filed when the user asks Claude "sort my Engram inbox": Claude calls `list_unsorted`, then `sort_capture` for each one. Until then they sit in the Inbox as plain notes, so nothing is lost.
 
 **Review gate.** Entries Claude marks with low confidence, or with no matching project, get `needs_review` and show the "not sure" card in the Inbox. Claude never creates projects on its own; it may suggest a name on the card, and creating it is one click.
 
@@ -193,17 +192,17 @@ flowchart LR
 
 Goal: a real Mac app you can already use as a quick notebook.
 
-- Replace the web app on `demo` with an Xcode project: app target, `engram-mcp` target (empty for now), `EngramKit` package
+- Replace the web app on `demo` with an Xcode project: app target and `EngramKit` package (the `engram-mcp` target arrives in Phase 7)
 - Design tokens from the mockups as SwiftUI colors and styles (dark, Geist, project palette)
-- App shell: sidebar with Inbox, Projects, Brain (empty states for the last two); menu-bar icon
+- App shell: sidebar with Inbox, Projects, Brain (empty states for the last two); menu-bar icon; closing the window keeps Engram in the menu bar
 - SQLite via GRDB with migrations for the schema above
-- Global-hotkey capture panel: focused on open, Enter saves, Esc closes; saved as an unsorted note
+- Capture field in the menu-bar popover and the main window (⌘N): focused on open, Enter saves, Shift+Enter adds a line; saved as an unsorted note
 - Inbox: latest entries, kind filter, manual project assignment, create a project inline
 - Format/lint (`swift format`), tests, build/test scripts, CI on GitHub Actions (macOS runner, `chore` commits only)
 
 Done when:
 
-- [ ] From pressing the hotkey anywhere to a saved thought takes under 3 seconds
+- [ ] From clicking the menu-bar icon to a saved thought takes under 3 seconds
 - [ ] Thoughts survive quitting and relaunching; no Docker, server or login involved
 
 ### Phase 7 — Claude connector + search (0.7.0)
@@ -269,9 +268,10 @@ After Phase 10: merge `demo` into `main`, then `dev` for further work; 1.0.0 whe
 
 1. **iPhone.** Talking to Claude on the phone while the Mac is off. Open options: a scheduled Claude task that writes into a folder connected through the desktop app (scheduled tasks run in the cloud and reach connected folders only while the desktop app is open), an iCloud Drive inbox folder fed by an iOS Shortcut, or a tunnel to the connector.
 2. **Optional in-app sorting** with the user's own API key, for people who don't use Claude Desktop.
-3. **Today screen** and **reminders** for due tasks.
-4. **Imports.** Obsidian vault, Apple Notes.
-5. **Windows.**
+3. **Global hotkey** and **launch at login.**
+4. **Today screen** and **reminders** for due tasks.
+5. **Imports.** Obsidian vault, Apple Notes.
+6. **Windows.**
 
 ## Risks & open questions
 
