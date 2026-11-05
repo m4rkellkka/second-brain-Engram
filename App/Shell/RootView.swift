@@ -95,6 +95,7 @@ private struct SidebarRow: View {
       .contentShape(Rectangle())
     }
     .buttonStyle(.plain)
+    .focusEffectDisabled()
   }
 }
 
