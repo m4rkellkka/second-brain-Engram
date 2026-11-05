@@ -28,16 +28,25 @@ enum Section: String, CaseIterable, Identifiable {
 @Observable
 final class AppModel {
   static let mainWindowID = "main"
+  static let connectorFlag = "--mcp"
 
   let database: AppDatabase?
   let loadError: String?
   var section: Section = .inbox
   /// Bumped to move keyboard focus into the window's capture field.
   var captureFocusToken = 0
+  /// Bumped when the connector wrote to the database from its own process.
+  var externalChanges = 0
+  var isSearching = false
 
   init(database: AppDatabase?, loadError: String? = nil) {
     self.database = database
     self.loadError = loadError
+    NotificationCenter.default.addObserver(
+      forName: ChangeSignal.notification, object: nil, queue: .main
+    ) { [weak self] _ in
+      MainActor.assumeIsolated { self?.externalChanges += 1 }
+    }
   }
 
   /// The model for the running app, on the database file on disk.
@@ -53,7 +62,7 @@ final class AppModel {
 
   /// Debug builds accept `-EngramDatabasePath <file>` to keep test data
   /// away from the real database.
-  private static func databaseURL() throws -> URL {
+  static func databaseURL() throws -> URL {
     #if DEBUG
       if let path = UserDefaults.standard.string(forKey: "EngramDatabasePath") {
         return URL(filePath: path)
@@ -82,6 +91,18 @@ final class AppModel {
 
   func setProject(_ projectID: String?, forEntry entryID: String) -> String? {
     perform { try $0.setProject(projectID, forEntry: entryID) }
+  }
+
+  func setKind(_ kind: EntryKind, forEntry entryID: String) -> String? {
+    perform { try $0.setKind(kind, forEntry: entryID) }
+  }
+
+  func confirm(_ entryID: String) -> String? {
+    perform { try $0.confirmEntry(entryID) }
+  }
+
+  func createSuggestedProject(forEntry entryID: String) -> String? {
+    perform { try $0.createSuggestedProject(forEntry: entryID) }
   }
 
   private func perform(_ work: (AppDatabase) throws -> Void) -> String? {

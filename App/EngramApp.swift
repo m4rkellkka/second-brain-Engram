@@ -1,7 +1,7 @@
 import AppKit
+import EngramKit
 import SwiftUI
 
-@main
 struct EngramApp: App {
   @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
   @State private var model: AppModel
@@ -9,6 +9,7 @@ struct EngramApp: App {
   init() {
     Fonts.register()
     _model = State(initialValue: AppModel.live())
+    ChangeSignal.startListening()
   }
 
   var body: some Scene {
@@ -21,6 +22,13 @@ struct EngramApp: App {
     }
     .defaultSize(width: 1040, height: 720)
     .commands { EngramCommands(model: model) }
+
+    Settings {
+      SettingsView()
+        .environment(model)
+        .preferredColorScheme(.dark)
+        .tint(Theme.accent)
+    }
 
     MenuBarExtra("Engram", systemImage: "point.3.connected.trianglepath.dotted") {
       MenuBarPanel()
@@ -54,6 +62,13 @@ struct EngramCommands: Commands {
         model.startNewThought()
       }
       .keyboardShortcut("n")
+    }
+    CommandGroup(after: .newItem) {
+      Button("Search…") {
+        openWindow(id: AppModel.mainWindowID)
+        model.isSearching = true
+      }
+      .keyboardShortcut("k")
     }
   }
 }

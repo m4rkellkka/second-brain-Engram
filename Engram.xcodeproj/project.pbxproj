@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		E1A000000000000000000001 /* EngramKit in Frameworks */ = {isa = PBXBuildFile; productRef = E1A000000000000000000040 /* EngramKit */; };
+		E1A000000000000000000002 /* EngramMCP in Frameworks */ = {isa = PBXBuildFile; productRef = E1A000000000000000000042 /* EngramMCP */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -29,6 +30,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				E1A000000000000000000001 /* EngramKit in Frameworks */,
+				E1A000000000000000000002 /* EngramMCP in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -81,6 +83,7 @@
 			name = Engram;
 			packageProductDependencies = (
 				E1A000000000000000000040 /* EngramKit */,
+				E1A000000000000000000042 /* EngramMCP */,
 			);
 			productName = Engram;
 			productReference = E1A000000000000000000010 /* Engram.app */;
@@ -271,6 +274,10 @@
 		E1A000000000000000000040 /* EngramKit */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = EngramKit;
+		};
+		E1A000000000000000000042 /* EngramMCP */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = EngramMCP;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
