@@ -25,6 +25,8 @@ public struct ProjectPage: Hashable, Sendable {
   public var openTasks: [InboxItem]
   public var doneTasks: [InboxItem]
   public var recentEntries: [InboxItem]
+  /// Entries per kind in the whole project.
+  public var kindCounts: [EntryKind: Int] = [:]
 }
 
 extension AppDatabase {
@@ -81,8 +83,16 @@ extension AppDatabase {
     let recent = try base.filter(Column("kind") != EntryKind.task)
       .order(Column("created_at").desc, Column("rowid").desc).limit(30)
       .asRequest(of: InboxItem.self).fetchAll(db)
+    var counts: [EntryKind: Int] = [:]
+    for row in try Row.fetchAll(
+      db, sql: "select kind, count(*) as n from entries where project_id = ? group by kind",
+      arguments: [projectID])
+    {
+      if let kind = EntryKind(rawValue: row["kind"]) { counts[kind] = row["n"] }
+    }
     return ProjectPage(
-      project: project, sections: sections, openTasks: open, doneTasks: done, recentEntries: recent)
+      project: project, sections: sections, openTasks: open, doneTasks: done, recentEntries: recent,
+      kindCounts: counts)
   }
 
   public func projectOverviewUpdates() -> AsyncValueObservation<[ProjectOverview]> {

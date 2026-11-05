@@ -49,6 +49,7 @@ import Testing
     #expect(page.sections[.stack]?.map(\.item.text) == ["SQLite"])
     #expect(page.sections[.stack]?.first?.sources.map(\.content) == ["Use SQLite"])
     #expect(page.sections[.idea]?.first?.item.source == .ai)
+    #expect(page.kindCounts == [.note: 1, .idea: 1])
   }
 
   @Test func repeatsAreSkippedIgnoringCase() throws {

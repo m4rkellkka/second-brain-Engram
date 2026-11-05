@@ -9,6 +9,8 @@ public struct GraphSnapshot: Hashable, Sendable {
     public var projectID: String?
     public var kind: EntryKind
     public var content: String
+    public var done: Bool = false
+    public var createdAt: Date = .distantPast
   }
 
   public struct Link: Hashable, Sendable {
@@ -32,7 +34,8 @@ extension AppDatabase {
     let rows = try Row.fetchAll(
       db,
       sql: """
-        select id, project_id, kind, substr(content, 1, 160) as content from entries
+        select id, project_id, kind, substr(content, 1, 160) as content, done_at, created_at
+        from entries
         order by created_at, rowid
         """)
     var nodes: [GraphSnapshot.Node] = []
@@ -43,7 +46,8 @@ extension AppDatabase {
       nodes.append(
         .init(
           id: row["id"], projectID: projectID,
-          kind: EntryKind(rawValue: row["kind"]) ?? .note, content: row["content"]))
+          kind: EntryKind(rawValue: row["kind"]) ?? .note, content: row["content"],
+          done: (row["done_at"] as String?) != nil, createdAt: row["created_at"]))
     }
     let index = Dictionary(uniqueKeysWithValues: nodes.enumerated().map { ($1.id, $0) })
     let links = try Row.fetchAll(db, sql: "select source_id, target_id, weight from entry_links")
