@@ -15,9 +15,11 @@ struct InboxView: View {
       VStack(alignment: .leading, spacing: 20) {
         VStack(alignment: .leading, spacing: 4) {
           Text("Inbox").font(.geist(24, .semibold)).foregroundStyle(Theme.text)
-          Text("Typed thoughts wait here until Claude sorts them.")
-            .font(.geist(13))
-            .foregroundStyle(Theme.textMuted)
+          Text(
+            "Thoughts from Claude and from the capture field. Ask Claude to sort the unsorted ones."
+          )
+          .font(.geist(13))
+          .foregroundStyle(Theme.textMuted)
         }
         CaptureBox()
         KindFilter(selection: $kind)
@@ -53,8 +55,9 @@ struct InboxView: View {
       }
       .scrollContentBackground(.hidden)
     }
-    .task(id: kind) { await observeInbox() }
-    .task { await observeProjects() }
+    // Restart the observations when the connector wrote from its own process.
+    .task(id: InboxKey(kind: kind, changes: model.externalChanges)) { await observeInbox() }
+    .task(id: model.externalChanges) { await observeProjects() }
   }
 
   private func observeInbox() async {
@@ -77,6 +80,11 @@ struct InboxView: View {
       loadError = "Couldn't load projects: \(error.localizedDescription)"
     }
   }
+}
+
+private struct InboxKey: Hashable {
+  var kind: EntryKind?
+  var changes: Int
 }
 
 private struct KindFilter: View {

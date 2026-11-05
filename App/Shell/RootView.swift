@@ -23,6 +23,7 @@ struct RootView: View {
       .frame(maxWidth: .infinity, maxHeight: .infinity)
       .background(Theme.background)
     }
+    .sheet(isPresented: $model.isSearching) { SearchPalette() }
     .toolbar(removing: .title)
     .toolbarBackground(Theme.background, for: .windowToolbar)
     .containerBackground(Theme.background, for: .window)
