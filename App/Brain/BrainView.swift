@@ -8,3 +8,11 @@ struct BrainView: View {
       text: "The 3D graph of your notes arrives in a later version.")
   }
 }
+
+#Preview("Brain") {
+  BrainView()
+    .frame(width: 700, height: 500)
+    .background(Theme.background)
+    .preferredColorScheme(.dark)
+    .onAppear { Fonts.register() }
+}

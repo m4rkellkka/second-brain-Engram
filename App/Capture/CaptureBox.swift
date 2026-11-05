@@ -83,3 +83,12 @@ struct CaptureBox: View {
     }
   }
 }
+
+#Preview("Capture field") {
+  CaptureBox()
+    .environment(AppModel.preview(withSamples: false))
+    .padding(24)
+    .frame(width: 640)
+    .background(Theme.background)
+    .preferredColorScheme(.dark)
+}

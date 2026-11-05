@@ -10,3 +10,11 @@ struct ProjectsView: View {
         + "from the Inbox are already saved and will show up here.")
   }
 }
+
+#Preview("Projects") {
+  ProjectsView()
+    .frame(width: 700, height: 500)
+    .background(Theme.background)
+    .preferredColorScheme(.dark)
+    .onAppear { Fonts.register() }
+}

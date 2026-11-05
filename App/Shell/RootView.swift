@@ -97,3 +97,10 @@ extension Bundle {
     object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
   }
 }
+
+#Preview("Window") {
+  RootView()
+    .environment(AppModel.preview())
+    .frame(width: 1000, height: 680)
+    .preferredColorScheme(.dark)
+}

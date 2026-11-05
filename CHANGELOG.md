@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Xcode previews for the window, Inbox, capture field, menu-bar panel and placeholders, on an in-memory database with sample entries.
+
 ## [0.6.0] - 2026-11-05
 
 Engram is now a native macOS app. The Next.js + Supabase web app (0.1.0–0.5.0) is kept on the `web-archive` branch.

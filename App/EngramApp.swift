@@ -8,7 +8,7 @@ struct EngramApp: App {
 
   init() {
     Fonts.register()
-    _model = State(initialValue: AppModel())
+    _model = State(initialValue: AppModel.live())
   }
 
   var body: some Scene {

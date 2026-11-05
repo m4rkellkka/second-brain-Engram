@@ -107,3 +107,19 @@ private struct KindFilter: View {
     }
   }
 }
+
+#Preview("Inbox") {
+  InboxView()
+    .environment(AppModel.preview())
+    .frame(width: 800, height: 700)
+    .background(Theme.background)
+    .preferredColorScheme(.dark)
+}
+
+#Preview("Inbox, empty") {
+  InboxView()
+    .environment(AppModel.preview(withSamples: false))
+    .frame(width: 800, height: 500)
+    .background(Theme.background)
+    .preferredColorScheme(.dark)
+}

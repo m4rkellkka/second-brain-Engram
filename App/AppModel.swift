@@ -35,13 +35,19 @@ final class AppModel {
   /// Bumped to move keyboard focus into the window's capture field.
   var captureFocusToken = 0
 
-  init() {
+  init(database: AppDatabase?, loadError: String? = nil) {
+    self.database = database
+    self.loadError = loadError
+  }
+
+  /// The model for the running app, on the database file on disk.
+  static func live() -> AppModel {
     do {
-      database = try AppDatabase.open(at: Self.databaseURL())
-      loadError = nil
+      return AppModel(database: try AppDatabase.open(at: databaseURL()))
     } catch {
-      database = nil
-      loadError = "Couldn't open the Engram database: \(error.localizedDescription)"
+      return AppModel(
+        database: nil,
+        loadError: "Couldn't open the Engram database: \(error.localizedDescription)")
     }
   }
 

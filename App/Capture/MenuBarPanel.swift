@@ -43,3 +43,9 @@ private struct PanelButton: View {
     .buttonStyle(.plain)
   }
 }
+
+#Preview("Menu-bar panel") {
+  MenuBarPanel()
+    .environment(AppModel.preview(withSamples: false))
+    .preferredColorScheme(.dark)
+}
