@@ -193,7 +193,7 @@ flowchart LR
 
 Goal: a real Mac app you can already use as a quick notebook.
 
-- Replace the web app on `demo` with an Xcode project: app target and `EngramKit` package (the `engram-mcp` target arrives in Phase 7)
+- Replace the web app on `demo` with an Xcode project: app target and `EngramKit` package
 - Design tokens from the mockups as SwiftUI colors and styles (dark, Geist, project palette)
 - App shell: sidebar with Inbox, Projects, Brain (empty states for the last two); menu-bar icon; closing the window keeps Engram in the menu bar
 - SQLite via GRDB with migrations for the schema above
@@ -212,7 +212,7 @@ Goal: talk with Claude, say "save this to Engram", and it shows up sorted.
 
 - `Engram --mcp` over stdio with the tools above (MCP Swift SDK); validation and save rules in EngramKit
 - "Connect to Claude Desktop" in Settings
-- Live refresh of the open app after helper writes (Darwin notification)
+- Live refresh of the open app after connector writes (Darwin notification)
 - FTS5 search: `search_entries` tool and ⌘K in the app
 - Keyword links between entries (≥ 2 shared keywords), stored for the graph
 - "Not sure" cards and corrections in the Inbox

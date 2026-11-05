@@ -25,7 +25,7 @@ JSON
 ask() {
   (cd "$OUT" && claude -p "$(cat "$1")" --model "$MODEL" --restricted --tools "" \
     --strict-mcp-config --mcp-config "$OUT/mcp.json" --allowedTools "mcp__engram__*" \
-    --no-session-persistence --output-format text) >"$OUT/$(basename "$1" .md).reply.txt" 2>&1 ||
+    --no-session-persistence --output-format text </dev/null) >"$OUT/$(basename "$1" .md).reply.txt" 2>&1 ||
     echo "  failed: $(basename "$1")"
 }
 

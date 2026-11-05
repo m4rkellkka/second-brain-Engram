@@ -1,6 +1,6 @@
 # Progress
 
-**Current version:** 0.6.0 · **Current phase:** Phase 7 — Claude connector + search · status: **not started**
+**Current version:** 0.7.0 · **Current phase:** Phase 8 — Projects & live context · status: **not started**
 
 Engram was rebuilt as a native macOS app on 2026-11-05 (see `docs/SPEC.md`). Phases 0–5 shipped the Next.js + Supabase web app, kept on the `web-archive` branch.
 
@@ -8,7 +8,7 @@ Engram was rebuilt as a native macOS app on 2026-11-05 (see `docs/SPEC.md`). Pha
 | ----- | ---------------------------- | ---------------------- |
 | 0–5   | Web app (Next.js + Supabase) | done (v0.1.0 – v0.5.0) |
 | 6     | Native foundation            | done (v0.6.0)          |
-| 7     | Claude connector + search    | —                      |
+| 7     | Claude connector + search    | done (v0.7.0)          |
 | 8     | Projects & live context      | —                      |
 | 9     | Brain graph                  | —                      |
 | 10    | Open-source launch           | —                      |
@@ -25,6 +25,19 @@ Engram was rebuilt as a native macOS app on 2026-11-05 (see `docs/SPEC.md`). Pha
 - [x] 25 tests (schema, WAL reopen, FTS, thoughts, inbox, projects, slugs)
 - [x] CI on `macos-26` for `chore` commits
 - [x] README, CHANGELOG, release v0.6.0
+
+## Phase 7 checklist (done)
+
+- [x] `Engram --mcp` connector on the MCP Swift SDK with 7 tools; save rules and validation in EngramKit
+- [x] Migration v2: `suggested_project`, search index rebuilt with "ё" folded into "е"
+- [x] Keyword links (≥ 2 shared keywords) in `entry_links`
+- [x] Full-text search (prefix, filters, light Russian ending trim) for the tool and ⌘K
+- [x] Settings: connect / disconnect Claude Desktop, backup of its config
+- [x] Live refresh of the open app after connector writes (Darwin notification)
+- [x] "Not sure" cards, kind menu, source label, corrections
+- [x] 61 tests; `make eval-connector`
+- [x] Eval on 2026-11-05 (Sonnet, `claude -p`): 10/10 conversations filed correctly, both questions answered correctly after the local-time fix
+- [x] CHANGELOG, README, release v0.7.0
 
 ## Environments
 
@@ -90,11 +103,18 @@ Rows before 2026-11-05 describe the web app (now on the `web-archive` branch).
 | 2026-11-05 | Timestamps in GRDB's UTC text format; dedupe hash unique only for Claude summaries       | Sortable and SQLite-friendly; typing the same thought twice is fine                                    |
 | 2026-11-05 | Bundle id `io.github.m4rkellkka.Engram`, ad-hoc signed, hardened runtime                 | No paid developer account; an id tied to the GitHub account, not a domain we don't own                 |
 | 2026-11-05 | CI on the stable `macos-26` image (Xcode 26.6), not the Xcode 27 preview                 | Nothing needs Xcode 27; previews break                                                                 |
+| 2026-11-05 | Connector is `Engram --mcp` (same binary), not a separate helper target                  | No second target, embedding step or signature                                                          |
+| 2026-11-05 | Official MCP Swift SDK (pulls swift-nio and 5 more packages)                              | Protocol versions are the SDK's job, not ours                                                          |
+| 2026-11-05 | Connect by writing `claude_desktop_config.json` from Settings; `.mcpb` in Phase 10       | Simplest path that works now; one-click install matters for other people at launch                    |
+| 2026-11-05 | Below 0.7 confidence or no matching project → "not sure"; Claude never creates projects  | Same rule as the web app                                                                               |
+| 2026-11-05 | Tool results use local time; date-only deadlines come back as plain dates                 | Eval: Claude read a UTC midnight deadline as "today 21:00"                                             |
+| 2026-11-05 | Search index stores text with "ё" → "е"                                                   | unicode61 doesn't fold Cyrillic "ё"; people type both                                                  |
 
 ## Open questions
 
 - [ ] Phase 6 "done when" (under 3 seconds from the menu-bar icon) needs Mikhail's hand check: keystrokes can't be automated here without Accessibility permission
-- [ ] Phase 7: connect through a Claude Desktop Extension (`.mcpb`) or by editing `claude_desktop_config.json`?
+- [ ] Phase 7 hand check by Mikhail: Connect in Settings, restart Claude Desktop, "save this to Engram" in a real chat (the eval used the claude CLI, not the Desktop app)
+- [ ] Entries from one save show newest-first in the Inbox, so their order is reversed; fine for now, revisit with project pages
 - [ ] Is "Engram" free on GitHub and as a Mac app name?
 - [ ] iPhone path while the Mac is off (see SPEC → Post-MVP): scheduled task into a connected folder, iCloud Drive inbox via a Shortcut, or a tunnel
 
