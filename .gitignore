@@ -6,35 +6,17 @@ AGENTS.md
 .cursor/
 .cursorrules
 
-# dependencies
-/node_modules
+# Xcode and SwiftPM
+/build/
+DerivedData/
+.build/
+.swiftpm/
+*.xcuserstate
+xcuserdata/
+*.xcscmblueprint
 
-# testing
-/coverage
-
-# next.js
-/.next/
-/out/
-/build
-next-env.d.ts
-*.tsbuildinfo
-
-# env files
+# env files (web-archive only)
 .env*
-!.env.example
-
-# vercel
-.vercel
-
-# supabase
-supabase/.branches
-supabase/.temp
 
 # misc
 .DS_Store
-*.pem
-npm-debug.log*
-.pnpm-debug.log*
-
-# Private eval fixtures (real captures)
-evals/fixtures/*.local.json

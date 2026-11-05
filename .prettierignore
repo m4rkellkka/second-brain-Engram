@@ -1,6 +1,0 @@
-pnpm-lock.yaml
-.next
-supabase/.temp
-CLAUDE.md
-AGENTS.md
-src/server/db/database.types.ts
