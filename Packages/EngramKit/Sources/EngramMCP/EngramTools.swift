@@ -38,7 +38,9 @@ public enum EngramTools {
     replaced; repeats are skipped. Check get_project_context first to avoid restating items.
     - summary: a new 1 to 3 sentence description, only if the project itself changed. \
     - status: a few words like "MVP in progress" or "paused", only if it changed.
-    If the user wrote the summary or status, Engram keeps theirs and says so in the result.
+    If the user wrote the summary or status, Engram keeps theirs and says so in the result. \
+    You cannot override it; tell the user they can press "Let Claude update" on the project \
+    page in Engram if they want your text instead.
     """
 
   static let contextSchema: Value = [
