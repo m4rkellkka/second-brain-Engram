@@ -6,6 +6,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-05
+
+Engram is now a native macOS app. The Next.js + Supabase web app (0.1.0–0.5.0) is kept on the `web-archive` branch.
+
+### Added
+
+- Native SwiftUI app with a sidebar: Inbox, Projects and Brain (the last two are placeholders until their phases).
+- Menu-bar icon with a capture field that is focused as soon as it opens: Enter saves, Shift+Enter adds a line.
+- ⌘N opens the window and focuses its capture field.
+- Inbox: latest 50 entries, newest first, with a kind filter and a project menu with "New project…" inline. It updates live after every save.
+- Local SQLite database at `~/Library/Application Support/Engram/engram.sqlite` (WAL mode), with the full schema for the coming phases and a full-text index.
+- Design tokens from the mockups, bundled Geist fonts, a new app icon.
+- `make build`, `make run`, `make test`, `make lint`; CI on macOS runners.
+
+### Changed
+
+- Thoughts typed in Engram are saved as unsorted notes; Claude will sort them through the connector in 0.7.0.
+
+### Removed
+
+- The web app, Supabase, sign-in and the in-app AI provider. Engram no longer needs Docker, a server, an account or an API key.
+
 ## [0.5.0] - 2026-11-04
 
 ### Added
@@ -103,7 +125,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GitHub Actions CI: lint, format check, typecheck and build.
 - MIT license.
 
-[Unreleased]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.2.1...v0.3.0
