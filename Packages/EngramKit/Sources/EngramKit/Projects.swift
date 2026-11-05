@@ -37,10 +37,16 @@ extension AppDatabase {
       if let projectID, try Project.exists(db, key: projectID) == false {
         throw EngramError.projectNotFound
       }
-      guard entry.projectId != projectID else { return }
+      guard entry.projectId != projectID || entry.needsReview else { return }
+      let old = entry.projectId
       entry.projectId = projectID
+      // Picking a project by hand settles a "not sure" card.
+      entry.needsReview = false
       entry.updatedAt = now
       try entry.update(db)
+      if old != projectID {
+        try Self.recordCorrection(entry, field: "project", old: old, new: projectID, now: now, db)
+      }
     }
   }
 
