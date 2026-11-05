@@ -65,3 +65,37 @@ import Testing
     }
   }
 }
+
+@Suite struct MigrationV2Tests {
+  @Test func upgradeFromV1KeepsOldEntriesSearchable() throws {
+    let queue = try DatabaseQueue()
+    try AppDatabase.migrator.migrate(queue, upTo: "v1")
+    try queue.write { db in
+      try db.execute(
+        sql: """
+          insert into captures values ('c', 'typed', 'Сдать отчёт', null, 'h', 'unsorted',
+            'Europe/Moscow', '2026-11-05 10:00:00.000', null);
+          insert into entries (id, capture_id, kind, content, needs_review, created_at, updated_at)
+            values ('e', 'c', 'note', 'Сдать отчёт', 0, '2026-11-05 10:00:00.000',
+            '2026-11-05 10:00:00.000');
+          """)
+    }
+    let db = try AppDatabase(queue)
+    let hits = try db.writer.read { try AppDatabase.search($0, query: "отчет") }
+    #expect(hits.map(\.entry.id) == ["e"])
+  }
+
+  @Test func indexFollowsUpdatesAndDeletes() throws {
+    let db = try AppDatabase.inMemory()
+    let entry = try db.saveTypedThought("Ёлка на Новый год")
+    #expect(try db.writer.read { try AppDatabase.search($0, query: "елка") }.count == 1)
+    try db.writer.write {
+      try $0.execute(
+        sql: "update entries set content = 'Подарки' where id = ?", arguments: [entry.id])
+    }
+    #expect(try db.writer.read { try AppDatabase.search($0, query: "елка") }.isEmpty)
+    #expect(try db.writer.read { try AppDatabase.search($0, query: "подарки") }.count == 1)
+    _ = try db.writer.write { try Entry.deleteAll($0) }
+    #expect(try db.writer.read { try AppDatabase.search($0, query: "подарки") }.isEmpty)
+  }
+}
