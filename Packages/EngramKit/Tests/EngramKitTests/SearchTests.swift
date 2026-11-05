@@ -102,7 +102,8 @@ import Testing
     let context = try #require(
       try db.writer.read { try AppDatabase.projectContext($0, slug: "engram") })
     #expect(context.openTasks.map(\.content) == ["Ship 0.7"])
-    #expect(context.recentEntries.count == 2)
+    // Tasks are listed in openTasks, not again among the recent entries.
+    #expect(context.recentEntries.map(\.content) == ["Uses GRDB"])
     #expect(try db.writer.read { try AppDatabase.projectContext($0, slug: "nope") } == nil)
     let summaries = try db.writer.read(AppDatabase.projectSummaries)
     #expect(summaries.map(\.entryCount) == [2])

@@ -94,4 +94,33 @@ import Testing
       ], database: db)
     #expect(sorted.isError == false)
   }
+
+  @Test func saveWithContextUpdatesThenReadContext() throws {
+    let db = try AppDatabase.inMemory()
+    _ = try db.createProject(named: "Engram")
+    let save = EngramTools.call(
+      "save_to_engram",
+      arguments: [
+        "summary": "Decided on FTS5.",
+        "entries": [
+          [
+            "kind": "note", "content": "Use FTS5", "projectSlug": "engram", "confidence": 1,
+            "keywords": [],
+          ]
+        ],
+        "contextUpdates": [
+          [
+            "projectSlug": "engram", "status": "Building search",
+            "add": [["section": "decision", "text": "FTS5, no embeddings", "fromEntries": [0]]],
+          ]
+        ],
+      ], database: db)
+    #expect(save.isError == false)
+    #expect(text(save).contains("\"added\":1"))
+
+    let context = EngramTools.call(
+      "get_project_context", arguments: ["slug": "engram"], database: db)
+    #expect(text(context).contains("FTS5, no embeddings"))
+    #expect(text(context).contains("Building search"))
+  }
 }
