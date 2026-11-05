@@ -1,0 +1,26 @@
+name: CI
+
+# Runs only when the pushed head commit is a `chore` commit (for example
+# `chore(release): v0.6.0`); every other commit is checked locally first.
+on:
+  push:
+    branches: [demo, dev]
+
+jobs:
+  check:
+    if: startsWith(github.event.head_commit.message, 'chore')
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Show toolchain
+        run: xcodebuild -version && swift --version
+
+      - name: Lint
+        run: make lint
+
+      - name: Test
+        run: make test
+
+      - name: Build
+        run: make build
