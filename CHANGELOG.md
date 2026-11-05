@@ -6,9 +6,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-11-05
+
 ### Added
 
-- Xcode previews for the window, Inbox, capture field, menu-bar panel and placeholders, on an in-memory database with sample entries.
+- Claude connector: Claude Desktop starts `Engram --mcp` and gets seven tools: `save_to_engram`, `list_projects`, `get_project_context`, `search_entries`, `list_tasks`, `list_unsorted` and `sort_capture`. Say "save this to Engram" at the end of a chat and Claude files it into your projects; ask "what did I decide about X?" and Claude looks it up. It runs on your Claude subscription; Engram needs no API key.
+- Settings (⌘,): connect Engram to Claude Desktop in one click, or disconnect. Your other Claude Desktop settings are kept, with a backup of the file.
+- The open Inbox updates within a second when Claude saves something.
+- "Not sure" cards for entries Claude was unsure about: "Looks right", or create the project Claude suggested in one click. The kind of an entry can be changed from its badge; corrections are recorded.
+- Cards show whether an entry came from Claude or is a typed thought still unsorted, plus due dates and links.
+- ⌘K search over all entries, as you type, in Russian and English ("ё" and "е" match).
+- Entries sharing keywords are linked, ready for the graph.
+- `make eval-connector` runs ten sample conversations through the connector with the real Claude.
+- Xcode previews on an in-memory database.
+
+### Changed
+
+- The database gets migration v2 (suggested project per entry, rebuilt search index). Existing data is kept.
 
 ## [0.6.0] - 2026-11-05
 
@@ -129,7 +143,8 @@ Engram is now a native macOS app. The Next.js + Supabase web app (0.1.0–0.5.0)
 - GitHub Actions CI: lint, format check, typecheck and build.
 - MIT license.
 
-[Unreleased]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.3.0...v0.4.0
