@@ -29,4 +29,4 @@ eval-connector: build
 	evals/connector/run.sh
 
 demo-graph: build
-	COUNT=$(or $(COUNT),2000) scripts/demo-graph.sh
+	COUNT=$(or $(COUNT),2000) PROJECTS=$(or $(PROJECTS),8) scripts/demo-graph.sh

@@ -1,30 +1,38 @@
 #!/bin/bash
-# Builds a throwaway database with 2,000 synthetic entries in 8 projects,
-# about 3,000 links and a journal day every third day, spread over a year,
-# then opens the Brain graph on it. Your real data is
-# never touched. Usage: make demo-graph [COUNT=2000]
+# Builds a throwaway database with synthetic entries (2,000 by default) in
+# a number of projects (8 by default), about 1.5 links per entry and a
+# journal day every third day, all spread over one year, then opens the
+# Brain graph on it. Your real data is never touched.
+# Usage: make demo-graph [COUNT=2000] [PROJECTS=8]
 set -euo pipefail
 
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 APP=$ROOT/build/DerivedData/Build/Products/Debug/Engram.app
 OUT=$ROOT/build/demo-graph
 COUNT=${COUNT:-2000}
+PROJECTS=${PROJECTS:-8}
+
+NAMES=(Engram Учёба Tamam Здоровье Шахматы Машина Lumis Путешествия Музыка Спорт
+  Книги Финансы Дом Работа Курсовая Английский Фотография Кулинария Стартап Игры
+  Друзья Сад Велосипед Японский)
+COLORS=('#B79CFF' '#F2A65A' '#3FD0B6' '#7FA8FF' '#F48FB1' '#C9E26B')
+[ "$PROJECTS" -ge 1 ] && [ "$PROJECTS" -le ${#NAMES[@]} ] ||
+  { echo "PROJECTS must be 1 to ${#NAMES[@]}"; exit 1; }
 
 [ -d "$APP" ] || { echo "Build the app first: make build"; exit 1; }
 rm -rf "$OUT" && mkdir -p "$OUT"
 DB=$OUT/demo.sqlite
 "$APP/Contents/MacOS/Engram" --mcp -EngramDatabasePath "$DB" </dev/null >/dev/null 2>&1
 
+PROJECT_ROWS=""
+for ((p = 0; p < PROJECTS; p++)); do
+  [ -n "$PROJECT_ROWS" ] && PROJECT_ROWS+=","
+  PROJECT_ROWS+="('p$p', '${NAMES[$p]}', 'demo-$p', '${COLORS[$((p % ${#COLORS[@]}))]}', 'ai', 'ai', '2026-01-01 00:00:00.000')"
+done
+
 sqlite3 "$DB" <<SQL
 insert into projects (id, name, slug, color, summary_source, status_source, created_at) values
-  ('p0', 'Engram', 'engram', '#B79CFF', 'ai', 'ai', '2026-01-01 00:00:00.000'),
-  ('p1', 'Учёба', 'ucheba', '#F2A65A', 'ai', 'ai', '2026-01-01 00:00:00.000'),
-  ('p2', 'Tamam', 'tamam', '#3FD0B6', 'ai', 'ai', '2026-01-01 00:00:00.000'),
-  ('p3', 'Здоровье', 'zdorove', '#7FA8FF', 'ai', 'ai', '2026-01-01 00:00:00.000'),
-  ('p4', 'Шахматы', 'shakhmaty', '#F48FB1', 'ai', 'ai', '2026-01-01 00:00:00.000'),
-  ('p5', 'Машина', 'mashina', '#C9E26B', 'ai', 'ai', '2026-01-01 00:00:00.000'),
-  ('p6', 'Lumis', 'lumis', '#B79CFF', 'ai', 'ai', '2026-01-01 00:00:00.000'),
-  ('p7', 'Путешествия', 'puteshestviya', '#3FD0B6', 'ai', 'ai', '2026-01-01 00:00:00.000');
+  $PROJECT_ROWS;
 insert into captures values ('demo', 'claude', 'Synthetic demo data', 'demo', 'demo', 'sorted',
   'Europe/Istanbul', '2026-01-01 00:00:00.000', '2026-01-01 00:00:00.000');
 
@@ -32,15 +40,15 @@ insert into captures values ('demo', 'claude', 'Synthetic demo data', 'demo', 'd
 with recursive n(i) as (select 0 union all select i + 1 from n where i + 1 < $COUNT)
 insert into entries (id, capture_id, project_id, kind, content, keywords, needs_review, created_at, updated_at)
 select 'e' || i, 'demo',
-  case when i % 13 = 0 then null else 'p' || ((i * i + i / 7) % 8) end,
+  case when i % 13 = 0 then null else 'p' || ((i * i + i / 7) % $PROJECTS) end,
   case i % 4 when 0 then 'note' when 1 then 'task' when 2 then 'idea' else 'link' end,
   'Demo entry ' || i, null, 0,
-  strftime('%Y-%m-%d %H:%M:%f', '2026-01-01', '+' || (i * 4) || ' hours'),
-  strftime('%Y-%m-%d %H:%M:%f', '2026-01-01', '+' || (i * 4) || ' hours')
+  strftime('%Y-%m-%d %H:%M:%f', '2026-01-01', '+' || (i * 525600 / $COUNT) || ' minutes'),
+  strftime('%Y-%m-%d %H:%M:%f', '2026-01-01', '+' || (i * 525600 / $COUNT) || ' minutes')
 from n;
 
 -- A journal day every third day over the same stretch, for the timeline.
-with recursive d(i) as (select 0 union all select i + 3 from d where i + 3 < $COUNT / 6)
+with recursive d(i) as (select 0 union all select i + 3 from d where i + 3 < 365)
 insert into journal_days (day, time_zone, created_at, updated_at)
 select date('2026-01-01', '+' || i || ' days'), 'Europe/Istanbul',
   strftime('%Y-%m-%d 18:00:00.000', '2026-01-01', '+' || i || ' days'),
