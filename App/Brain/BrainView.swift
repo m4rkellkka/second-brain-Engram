@@ -66,15 +66,10 @@ struct BrainView: View {
                 size: geometry.size)
             }
             #if DEBUG
-              TimelineView(.periodic(from: .now, by: 0.5)) { _ in
-                Text("\(Int((holder.renderer?.framesPerSecond ?? 0).rounded())) fps")
-                  .font(.geistMono(11))
-                  .foregroundStyle(Theme.textSubtle)
+              // `-EngramHideFPS YES` hides the counter for screenshots.
+              if !UserDefaults.standard.bool(forKey: "EngramHideFPS") {
+                fpsCounter
               }
-              .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-              .padding(.top, 62)
-              .padding(.trailing, 24)
-              .allowsHitTesting(false)
             #endif
           }
         }
@@ -200,6 +195,20 @@ struct BrainView: View {
       }
     }
   }
+
+  #if DEBUG
+    private var fpsCounter: some View {
+      TimelineView(.periodic(from: .now, by: 0.5)) { _ in
+        Text("\(Int((holder.renderer?.framesPerSecond ?? 0).rounded())) fps")
+          .font(.geistMono(11))
+          .foregroundStyle(Theme.textSubtle)
+      }
+      .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+      .padding(.top, 62)
+      .padding(.trailing, 24)
+      .allowsHitTesting(false)
+    }
+  #endif
 
   private func controls(fieldWidth: CGFloat) -> some View {
     HStack(spacing: 8) {

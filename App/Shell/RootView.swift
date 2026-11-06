@@ -28,6 +28,18 @@ struct RootView: View {
     .ignoresSafeArea(.container, edges: .top)
     .sheet(isPresented: $model.isSearching) { SearchPalette() }
     .containerBackground(Theme.background, for: .window)
+    #if DEBUG
+      // `-EngramWindowSize 1280x800`: a fixed window size for screenshots.
+      .onAppear {
+        guard let raw = UserDefaults.standard.string(forKey: "EngramWindowSize") else { return }
+        let parts = raw.split(separator: "x").compactMap { Double($0) }
+        guard parts.count == 2 else { return }
+        DispatchQueue.main.async {
+          NSApp.windows.first { $0.identifier?.rawValue.hasPrefix(AppModel.mainWindowID) == true }?
+          .setContentSize(NSSize(width: parts[0], height: parts[1]))
+        }
+      }
+    #endif
   }
 }
 
