@@ -5,13 +5,14 @@ import Observation
 
 /// The window's tabs, in the order they appear (and their ⌘1… shortcuts).
 enum Section: String, CaseIterable, Identifiable {
-  case today, inbox, projects, brain
+  case today, journal, inbox, projects, brain
 
   var id: String { rawValue }
 
   var title: String {
     switch self {
     case .today: "Today"
+    case .journal: "Journal"
     case .inbox: "Inbox"
     case .projects: "Projects"
     case .brain: "Brain"
@@ -38,6 +39,8 @@ final class AppModel {
   var isSearching = false
   /// The project page open in the Projects section, if any.
   var openProjectID: String?
+  /// The day open in the Journal (`2026-11-05`); nil means today.
+  var openJournalDay: String?
 
   init(database: AppDatabase?, loadError: String? = nil) {
     self.database = database
@@ -78,6 +81,12 @@ final class AppModel {
   func openProject(_ projectID: String) {
     openProjectID = projectID
     section = .projects
+  }
+
+  /// Opens a journal day (nil for today) in the Journal tab.
+  func openJournal(_ day: String? = nil) {
+    openJournalDay = day
+    section = .journal
   }
 
   /// ⌘N: focus a capture field, staying on the Inbox if it is open.
@@ -157,13 +166,16 @@ final class AppModel {
   }
 
   #if DEBUG
-    /// `-EngramSection projects` and `-EngramOpenProject <slug>` open a
+    /// `-EngramSection projects`, `-EngramOpenProject <slug>`,
+    /// `-EngramJournalDay 2026-11-05` and `-EngramSearch <text>` open a
     /// screen at launch, for screenshots and manual checks.
     private func applyDebugLaunchArguments() {
       let defaults = UserDefaults.standard
       if let raw = defaults.string(forKey: "EngramSection"), let value = Section(rawValue: raw) {
         section = value
       }
+      if let day = defaults.string(forKey: "EngramJournalDay") { openJournal(day) }
+      if defaults.string(forKey: "EngramSearch") != nil { isSearching = true }
       if let slug = defaults.string(forKey: "EngramOpenProject"),
         let id = try? database?.writer.read({ db in
           try String.fetchOne(db, sql: "select id from projects where slug = ?", arguments: [slug])

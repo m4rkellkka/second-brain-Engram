@@ -15,6 +15,7 @@ struct RootView: View {
         } else {
           switch model.section {
           case .today: TodayView()
+          case .journal: JournalView()
           case .inbox: InboxView()
           case .projects: ProjectsView()
           case .brain: BrainView()
@@ -46,8 +47,9 @@ private struct TopBar: View {
         .gesture(WindowDragGesture())
 
       SectionTabs(selection: $model.section, inboxBadge: waiting) { section in
-        // Clicking Projects again goes back to the list.
+        // Clicking Projects again goes back to the list, Journal to today.
         if section == .projects { model.openProjectID = nil }
+        if section == .journal { model.openJournalDay = nil }
       }
 
       HStack(spacing: 8) {

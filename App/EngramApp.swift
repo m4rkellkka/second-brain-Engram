@@ -79,6 +79,7 @@ struct EngramCommands: Commands {
           openWindow(id: AppModel.mainWindowID)
           model.section = section
           if section == .projects { model.openProjectID = nil }
+          if section == .journal { model.openJournalDay = nil }
         }
         .keyboardShortcut(KeyEquivalent(Character("\(index + 1)")))
       }

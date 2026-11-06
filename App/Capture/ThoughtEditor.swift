@@ -13,18 +13,26 @@ struct ThoughtEditor: NSViewRepresentable {
   /// Also take focus whenever the window becomes key (the menu-bar panel).
   var focusWhenWindowActivates = false
   var onSubmit: () -> Void
+  /// Esc; when nil, Esc does what the text view normally does.
+  var onCancel: (() -> Void)? = nil
+  var fontSize: CGFloat = 15
+  /// Take focus as soon as the editor appears. Off for fields further down
+  /// a page, where taking focus would scroll the page to them.
+  var focusOnAppear = true
 
   func makeCoordinator() -> Coordinator { Coordinator(parent: self) }
 
   func makeNSView(context: Context) -> NSScrollView {
     let textView = FocusingTextView(frame: .zero)
     textView.focusWhenWindowActivates = focusWhenWindowActivates
+    textView.focusOnAppear = focusOnAppear
     textView.delegate = context.coordinator
     textView.isRichText = false
     textView.importsGraphics = false
     textView.allowsUndo = true
     textView.drawsBackground = false
-    textView.font = NSFont(name: "Geist-Regular", size: 15) ?? .systemFont(ofSize: 15)
+    textView.font =
+      NSFont(name: "Geist-Regular", size: fontSize) ?? .systemFont(ofSize: fontSize)
     textView.textColor = NSColor(Theme.text)
     textView.insertionPointColor = NSColor(Theme.accent)
     textView.textContainerInset = NSSize(width: 0, height: 2)
@@ -71,6 +79,10 @@ struct ThoughtEditor: NSViewRepresentable {
     }
 
     func textView(_ textView: NSTextView, doCommandBy selector: Selector) -> Bool {
+      if selector == #selector(NSResponder.cancelOperation(_:)), let onCancel = parent.onCancel {
+        onCancel()
+        return true
+      }
       guard selector == #selector(NSResponder.insertNewline(_:)) else { return false }
       if NSApp.currentEvent?.modifierFlags.contains(.shift) == true {
         textView.insertNewlineIgnoringFieldEditor(nil)
@@ -86,6 +98,7 @@ struct ThoughtEditor: NSViewRepresentable {
 /// window becomes key.
 final class FocusingTextView: NSTextView {
   var focusWhenWindowActivates = false
+  var focusOnAppear = true
   private var keyObserver: (any NSObjectProtocol)?
 
   override func viewDidMoveToWindow() {
@@ -93,7 +106,7 @@ final class FocusingTextView: NSTextView {
     if let keyObserver { NotificationCenter.default.removeObserver(keyObserver) }
     keyObserver = nil
     guard let window else { return }
-    window.makeFirstResponder(self)
+    if focusOnAppear { window.makeFirstResponder(self) }
     guard focusWhenWindowActivates else { return }
     keyObserver = NotificationCenter.default.addObserver(
       forName: NSWindow.didBecomeKeyNotification, object: window, queue: .main
