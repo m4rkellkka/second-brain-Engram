@@ -17,12 +17,37 @@ import Testing
     #expect(
       Set(names) == [
         "save_to_engram", "list_projects", "get_project_context", "search_entries", "list_tasks",
-        "list_unsorted", "sort_capture", "update_project", "complete_task",
+        "list_unsorted", "sort_capture", "update_project", "complete_task", "write_journal",
+        "get_journal",
       ])
     for tool in EngramTools.all {
       #expect(tool.inputSchema.objectValue?["type"]?.stringValue == "object", "\(tool.name)")
       #expect((tool.description ?? "").count > 40, "\(tool.name)")
     }
+  }
+
+  @Test func writeThenReadTheJournalThroughTools() throws {
+    let db = try AppDatabase.inMemory()
+    let zone = TimeZone(identifier: "Europe/Istanbul") ?? .current
+    let now = ISO8601DateFormatter().date(from: "2026-11-06T18:00:00Z") ?? Date()
+    let write = EngramTools.call(
+      "write_journal", arguments: ["text": "Хороший день, доволен."], database: db, now: now,
+      timeZone: zone)
+    #expect(write.isError == false)
+    #expect(text(write).contains("\"date\":\"2026-11-06\""))
+
+    let future = EngramTools.call(
+      "write_journal", arguments: ["text": "x", "date": "2026-11-07"], database: db, now: now,
+      timeZone: zone)
+    #expect(future.isError == true)
+    #expect(text(future).contains("future"))
+
+    let read = EngramTools.call(
+      "get_journal", arguments: [:], database: db, now: now, timeZone: zone)
+    #expect(read.isError == false)
+    #expect(text(read).contains("Хороший день"))
+    #expect(text(read).contains("\"from\":\"2026-10-31\""))
+    #expect(text(read).contains("Friday"))
   }
 
   @Test func saveThenSearchThroughTools() throws {

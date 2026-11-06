@@ -11,7 +11,10 @@ public enum EngramTools {
     look them up with search_entries, get_project_context or list_tasks. Save only when the user \
     asks you to save, remember or file something. Keep project pages current with \
     update_project (description, status, stack, decisions, ideas) and tick finished tasks with \
-    complete_task. Reply to the user in their language.
+    complete_task. The user also keeps a journal, one page per day: write_journal adds to it \
+    when the user tells you how their day went or asks you to note something in their diary, \
+    and get_journal reads it when they ask how they felt or what happened on some days. Reply \
+    to the user in their language.
     """
 
   static let entryRules = """
@@ -238,6 +241,50 @@ public enum EngramTools {
       inputSchema: ["type": "object", "properties": [:]],
       annotations: .init(title: "Unsorted thoughts", readOnlyHint: true, openWorldHint: false)),
     Tool(
+      name: "write_journal",
+      title: "Write to the journal",
+      description: """
+        Add a paragraph to the user's journal (diary) in Engram. Use it when the user tells you \
+        how their day went, how they feel, or asks to write something to their journal \
+        ("запиши в дневник", "write to my journal"). Write in the first person, as the user, in \
+        their language: what happened and how they felt, 2 to 8 sentences, keeping their own \
+        words where you can. Don't invent anything they didn't say.
+        date: the local day (YYYY-MM-DD) it is about; leave it out for today. Use it when the \
+        user talks about an earlier day ("запиши за вчера"); resolve it against the local time \
+        from list_projects. Future days are rejected.
+        The paragraph is added to the day; Engram never changes what is already there, \
+        including what the user wrote. Afterwards tell the user it is in the Journal tab.
+        """,
+      inputSchema: [
+        "type": "object",
+        "properties": [
+          "text": ["type": "string"],
+          "date": ["type": "string", "description": "YYYY-MM-DD, local day; omit for today"],
+        ],
+        "required": ["text"],
+      ],
+      annotations: .init(
+        title: "Write journal", readOnlyHint: false, destructiveHint: false,
+        idempotentHint: true, openWorldHint: false)),
+    Tool(
+      name: "get_journal",
+      title: "Read the journal",
+      description: """
+        The user's journal days in a date range (inclusive, local days, YYYY-MM-DD), oldest \
+        first: each day's paragraphs with who wrote them. Defaults to the last 7 days; at most \
+        62 days at once. Use it when the user asks how they felt, how a week went, or what they \
+        wrote about a day ("как я себя чувствовал на прошлой неделе?"). Answer from what is \
+        written; say so if a day has nothing.
+        """,
+      inputSchema: [
+        "type": "object",
+        "properties": [
+          "from": ["type": "string", "description": "YYYY-MM-DD"],
+          "to": ["type": "string", "description": "YYYY-MM-DD"],
+        ],
+      ],
+      annotations: .init(title: "Read journal", readOnlyHint: true, openWorldHint: false)),
+    Tool(
       name: "sort_capture",
       title: "Sort a typed thought",
       description: """
@@ -347,6 +394,26 @@ public enum EngramTools {
 
       case "list_unsorted":
         return try reply(try database.writer.read { try AppDatabase.unsortedThoughts($0) })
+
+      case "write_journal":
+        let input = try decode(JournalWriteInput.self, from: args)
+        var calendar = Calendar.current
+        calendar.timeZone = timeZone
+        let result = try database.writeJournalFromClaude(input, now: now, calendar: calendar)
+        if !result.duplicate { ChangeSignal.post() }
+        return try reply(result)
+
+      case "get_journal":
+        var calendar = Calendar.current
+        calendar.timeZone = timeZone
+        let range = try AppDatabase.journalRange(
+          from: args["from"]?.stringValue, to: args["to"]?.stringValue, now: now,
+          calendar: calendar)
+        return try reply(
+          try database.writer.read { db in
+            try AppDatabase.journalExport(
+              db, from: range.from, to: range.to, timeZone: timeZone, calendar: calendar)
+          })
 
       default:
         return failure("Unknown tool \"\(name)\".")
