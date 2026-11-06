@@ -56,7 +56,13 @@ public struct GraphCamera: Sendable, Equatable {
   /// and its distance from the camera; nil when it is behind the camera.
   public func project(_ point: SIMD3<Float>, size: SIMD2<Float>) -> (SIMD2<Float>, Float)? {
     guard size.x > 0, size.y > 0 else { return nil }
-    let clip = viewProjection(aspect: size.x / size.y) * SIMD4(point, 1)
+    return Self.project(point, through: viewProjection(aspect: size.x / size.y), size: size)
+  }
+
+  static func project(
+    _ point: SIMD3<Float>, through matrix: simd_float4x4, size: SIMD2<Float>
+  ) -> (SIMD2<Float>, Float)? {
+    let clip = matrix * SIMD4(point, 1)
     guard clip.w > 0.05 else { return nil }
     let ndc = SIMD2(clip.x, clip.y) / clip.w
     return (SIMD2((ndc.x + 1) / 2 * size.x, (1 - ndc.y) / 2 * size.y), clip.w)
@@ -69,14 +75,21 @@ public struct GraphCamera: Sendable, Equatable {
   }
 
   /// The index of the point nearest to `location` within `radius` points,
-  /// preferring points closer to the camera when several overlap.
+  /// preferring points closer to the camera when several overlap. Points
+  /// `isIncluded` rejects are skipped. Called on every pointer move, so the
+  /// camera matrix is built once, not once per point.
   public func nearest(
     to location: SIMD2<Float>, among points: [SIMD3<Float>], size: SIMD2<Float>,
-    radius: Float = 10
+    radius: Float = 10, isIncluded: ((Int) -> Bool)? = nil
   ) -> Int? {
+    guard size.x > 0, size.y > 0 else { return nil }
+    let matrix = viewProjection(aspect: size.x / size.y)
     var best: (index: Int, score: Float)?
-    for (i, point) in points.enumerated() {
-      guard let (screen, depth) = project(point, size: size) else { continue }
+    for i in points.indices {
+      if let isIncluded, !isIncluded(i) { continue }
+      guard let (screen, depth) = Self.project(points[i], through: matrix, size: size) else {
+        continue
+      }
       let gap = simd_distance(screen, location)
       guard gap < radius else { continue }
       let score = gap + depth * 0.02

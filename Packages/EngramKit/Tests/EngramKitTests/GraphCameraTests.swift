@@ -38,6 +38,9 @@ import simd
     let points: [SIMD3<Float>] = [[0, 0, 10], [0, 0, -10], [8, 0, 0]]
     #expect(camera.nearest(to: [400, 300], among: points, size: size) == 0)
     #expect(camera.nearest(to: [10, 10], among: points, size: size) == nil)
+    // Hidden points (filtered out) can't be picked; the farther one wins.
+    #expect(
+      camera.nearest(to: [400, 300], among: points, size: size, isIncluded: { $0 != 0 }) == 1)
   }
 
   @Test func screenRadiusMatchesProjection() throws {
