@@ -44,7 +44,13 @@ jobs:
           VERSION=$(sed -n 's/^MARKETING_VERSION = //p' Config/Version.xcconfig)
           FILES="build/release/Engram-$VERSION.zip build/release/Engram-$VERSION.dmg build/release/SHA256SUMS.txt"
           if gh release view "v$VERSION" >/dev/null 2>&1; then
-            gh release upload "v$VERSION" $FILES --clobber
+            # Never touch a published release (e.g. when a new branch starts
+            # at a release commit); only a draft gets its files replaced.
+            if [ "$(gh release view "v$VERSION" --json isDraft -q .isDraft)" = "true" ]; then
+              gh release upload "v$VERSION" $FILES --clobber
+            else
+              echo "v$VERSION is already published; leaving it as it is."
+            fi
           else
             # 0.x versions are betas; from 1.0.0 on, releases are stable.
             PRERELEASE=""
