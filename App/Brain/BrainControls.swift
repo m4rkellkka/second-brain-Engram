@@ -125,6 +125,7 @@ struct GraphSearchField: View {
   @Binding var text: String
   let matchCount: Int?
   var focused: FocusState<Bool>.Binding
+  var width: CGFloat = 150
   let next: () -> Void
   let close: () -> Void
 
@@ -136,7 +137,7 @@ struct GraphSearchField: View {
       TextField("Find in graph", text: $text)
         .textFieldStyle(.plain)
         .font(.geist(12.5))
-        .frame(width: 150)
+        .frame(width: width)
         .focused(focused)
         .onSubmit(next)
         .onExitCommand(perform: close)
