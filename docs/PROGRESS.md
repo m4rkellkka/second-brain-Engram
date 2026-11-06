@@ -1,6 +1,6 @@
 # Progress
 
-**Current version:** 0.13.0 · **Current phase:** Phase 13 — Open-source launch · status: **built, waiting for Mikhail's OK to publish**
+**Current version:** 1.0.0 · **MVP done** (Phases 6–13) · further work on the `dev` branch
 
 Engram was rebuilt as a native macOS app on 2026-11-05 (see `docs/SPEC.md`). Phases 0–5 shipped the Next.js + Supabase web app, kept on the `web-archive` branch.
 
@@ -14,7 +14,7 @@ Engram was rebuilt as a native macOS app on 2026-11-05 (see `docs/SPEC.md`). Pha
 | 10    | Redesign                     | done (v0.10.0)         |
 | 11    | Journal                      | done (v0.11.0)         |
 | 12    | Brain 2.0                    | done (v0.12.0)         |
-| 13    | Open-source launch           | built (v0.13.0, draft) |
+| 13    | Open-source launch           | done (v0.13.0 → 1.0.0) |
 
 ## Phase 6 checklist (done)
 
@@ -128,7 +128,7 @@ Engram was rebuilt as a native macOS app on 2026-11-05 (see `docs/SPEC.md`). Pha
 - [x] README rewritten for strangers (GIF, screenshots, install with the quarantine step, keyboard, build, roadmap); CONTRIBUTING; issue forms
 - [x] Screenshots and GIF from test data only (eval database, demo graph), window captures only
 - [x] 120 tests (5 for the export)
-- [ ] Mikhail's OK: publish the v0.13.0 release, merge `demo` into `main`, create `dev`
+- [x] Mikhail called it stable: released as 1.0.0 (the 0.13.0 draft was dropped, its tag kept), `demo` merged into `main`, `dev` created
 
 ## Environments
 
@@ -239,6 +239,7 @@ Rows before 2026-11-05 describe the web app (now on the `web-archive` branch).
 | 2026-11-06 | Desktop Extension (`.mcpb`) moved out of Phase 13 to post-MVP                               | It bundles its own binary; the connector has to be the app's own and open the same database              |
 | 2026-11-06 | Export as one file per entry with `[[links]]` along the graph                               | Opens as an Obsidian vault with the same graph; plain Markdown everywhere else                           |
 | 2026-11-06 | README images from test data, captured per window                                           | The repository is public; a screen recording once caught another app's window                             |
+| 2026-11-06 | First public release is 1.0.0, not 0.13.0                                                   | Mikhail's call: the MVP is stable; 0.13.0 stays as the phase tag, its unpublished draft was dropped       |
 | 2026-11-06 | `get_journal` reads by date range only, no text search                                      | Enough for "how did I feel last week"; journal search for Claude is an idea for later                      |
 
 ## Open questions

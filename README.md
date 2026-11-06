@@ -7,8 +7,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/m4rkellkka/second-brain-Engram/releases"><img alt="Version" src="https://img.shields.io/badge/version-0.13.0-67E8F9"></a>
-  <img alt="Status" src="https://img.shields.io/badge/status-beta-F2A65A">
+  <a href="https://github.com/m4rkellkka/second-brain-Engram/releases"><img alt="Version" src="https://img.shields.io/badge/version-1.0.0-67E8F9"></a>
+  <img alt="Status" src="https://img.shields.io/badge/status-stable-3FD0B6">
   <img alt="License" src="https://img.shields.io/badge/license-MIT-3FD0B6">
   <img alt="Platform" src="https://img.shields.io/badge/macOS-15%2B-EDEDF0">
   <img alt="Swift" src="https://img.shields.io/badge/Swift-6-F48FB1">
@@ -146,7 +146,7 @@ Swift 6, SwiftUI with small AppKit bridges, Metal for the graph, SQLite through
 
 ## Roadmap
 
-Engram 0.13 is the first public release. Next, roughly in this order:
+Engram 1.0 is the first stable release. Next, roughly in this order:
 
 - **One-click connecting** with a Claude Desktop Extension (`.mcpb`)
 - **iPhone:** saving from Claude on the phone while the Mac is off
