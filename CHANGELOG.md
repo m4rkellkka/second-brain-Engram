@@ -6,6 +6,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-11-06
+
+### Added
+
+- Journal tab, right after Today (tabs are now Today · Journal · Inbox · Projects · Brain on ⌘1…⌘5): one diary page per day. Tell Claude "write to my journal how the day went", or write it yourself.
+- Each day shows its paragraphs with the time and who wrote them, a field to add your own, and "On this day" with what you saved and the tasks you finished.
+- Click a paragraph to edit it; Claude only ever adds paragraphs, so your words are never rewritten.
+- Write about an earlier day: ask Claude "write this to my journal for yesterday", or open the day in the list (or "Go to date…" in the ⋯ menu). Later additions get a quiet "added later" note. Future days are not allowed.
+- Connector tools `write_journal` and `get_journal`, so Claude can also answer "how did I feel last week?" from your journal.
+- A Journal card on Today with today's first paragraph.
+- ⌘K finds journal days.
+- Journal days show in the Brain graph as pale dots linked to what you saved that day; a click opens the day.
+
 ## [0.10.0] - 2026-11-06
 
 ### Added
@@ -217,7 +230,8 @@ Engram is now a native macOS app. The Next.js + Supabase web app (0.1.0–0.5.0)
 - GitHub Actions CI: lint, format check, typecheck and build.
 - MIT license.
 
-[Unreleased]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.10.0...HEAD
+[Unreleased]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.11.0...HEAD
+[0.11.0]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.9.2...v0.10.0
 [0.9.2]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.9.1...v0.9.2
 [0.9.1]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.9.0...v0.9.1
