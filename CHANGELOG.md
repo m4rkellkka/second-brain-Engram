@@ -6,6 +6,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-11-06
+
+The first public release.
+
+### Added
+
+- **Export to Markdown** in Settings: one file per entry with front matter, a page per project, an `Inbox` folder and one file per journal day, linked with `[[wikilinks]]`, so the folder opens as an Obsidian vault with the same graph.
+- Downloadable releases: a universal app (Apple silicon and Intel) as a DMG and a zip, with checksums.
+- A README for newcomers: what Engram does, install steps, connecting Claude Desktop, keyboard shortcuts and the roadmap; a contributing guide and issue forms.
+
+### Fixed
+
+- Journal: "On this day" cards of different heights line up again.
+
 ## [0.12.2] - 2026-11-06
 
 ### Fixed
@@ -271,7 +285,8 @@ Engram is now a native macOS app. The Next.js + Supabase web app (0.1.0–0.5.0)
 - GitHub Actions CI: lint, format check, typecheck and build.
 - MIT license.
 
-[Unreleased]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.12.2...HEAD
+[Unreleased]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.13.0...HEAD
+[0.13.0]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.12.2...v0.13.0
 [0.12.2]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.12.1...v0.12.2
 [0.12.1]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.12.0...v0.12.1
 [0.12.0]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.11.0...v0.12.0
