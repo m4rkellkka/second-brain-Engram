@@ -62,6 +62,12 @@ public struct GraphCamera: Sendable, Equatable {
     return (SIMD2((ndc.x + 1) / 2 * size.x, (1 - ndc.y) / 2 * size.y), clip.w)
   }
 
+  /// How many points tall a sphere of `radius` looks at `depth` from the
+  /// camera, in a view `height` points tall (its radius, not its diameter).
+  public func screenRadius(of radius: Float, atDepth depth: Float, height: Float) -> Float {
+    radius / tan(fieldOfView / 2) / max(depth, 0.001) * height / 2
+  }
+
   /// The index of the point nearest to `location` within `radius` points,
   /// preferring points closer to the camera when several overlap.
   public func nearest(

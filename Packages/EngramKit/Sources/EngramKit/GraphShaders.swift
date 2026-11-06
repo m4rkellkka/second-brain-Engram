@@ -6,6 +6,33 @@
 /// glows add up, so dense clusters shine like small nebulae. Depth fades
 /// far dots and lines (fog), which is what makes the picture read as 3D.
 public enum GraphShaders {
+  /// One dot or glow, laid out exactly like `Sprite` in the shader.
+  public struct Sprite: Sendable, Equatable {
+    public var position: SIMD4<Float>  // xyz, world radius
+    public var color: SIMD4<Float>  // rgb, intensity
+    /// x: the largest radius in pixels (0 keeps the default cap for dots).
+    public var style: SIMD4<Float>
+
+    public init(position: SIMD4<Float>, color: SIMD4<Float>, maxPixels: Float = 0) {
+      self.position = position
+      self.color = color
+      self.style = [maxPixels, 0, 0, 0]
+    }
+  }
+
+  /// One line segment, laid out exactly like `Line` in the shader.
+  public struct Line: Sendable, Equatable {
+    public var a: SIMD4<Float>  // xyz, width in pixels
+    public var b: SIMD4<Float>  // xyz, 1 = dashed
+    public var color: SIMD4<Float>
+
+    public init(a: SIMD4<Float>, b: SIMD4<Float>, color: SIMD4<Float>) {
+      self.a = a
+      self.b = b
+      self.color = color
+    }
+  }
+
   public static let source = """
     #include <metal_stdlib>
     using namespace metal;
@@ -13,12 +40,13 @@ public enum GraphShaders {
     struct Uniforms {
       float4x4 viewProjection;
       float4 viewport;   // width, height (pixels), time, max dot radius (pixels)
-      float4 fog;        // near, far, min factor, unused
+      float4 fog;        // near, far, min factor, projection y scale (1 / tan(fov / 2))
     };
 
     struct Sprite {
       float4 position;   // xyz, world radius
       float4 color;      // rgb, intensity
+      float4 style;      // x = largest radius in pixels (0 = viewport.w)
     };
 
     struct Line {
@@ -56,13 +84,18 @@ public enum GraphShaders {
       float4 clip = u.viewProjection * float4(s.position.xyz, 1.0);
       float2 corner = corners[vid];
       // A world-space radius becomes a clip offset through the projection's
-      // scale terms; keep at least ~1.2 px so far dots never vanish.
-      float2 scale = float2(u.viewProjection[0][0], u.viewProjection[1][1]);
+      // own scale. Not the view-projection matrix: its terms change as the
+      // camera turns, which squashed dots into slivers seen from the side.
+      // Keep at least ~1.2 px so far dots never vanish.
+      float py = u.fog.w;
+      float2 scale = float2(py * u.viewport.y / max(u.viewport.x, 1.0), py);
       float radius = s.position.w;
-      float pixels = radius * scale.y / max(clip.w, 0.001) * u.viewport.y * 0.5;
+      float pixels = radius * py / max(clip.w, 0.001) * u.viewport.y * 0.5;
       if (pixels < 1.2) { radius *= 1.2 / max(pixels, 0.0001); }
-      // Close up, dots stay dots instead of growing into bubbles.
-      if (pixels > u.viewport.w) { radius *= u.viewport.w / pixels; }
+      // Close up, dots stay dots instead of growing into bubbles; hubs and
+      // their halos bring a larger cap of their own.
+      float cap = s.style.x > 0.0 ? s.style.x : u.viewport.w;
+      if (pixels > cap) { radius *= cap / pixels; }
       clip.xy += corner * radius * glowScale * float2(scale.x, scale.y);
       SpriteOut out;
       out.position = clip;

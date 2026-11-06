@@ -5,6 +5,10 @@ import simd
 /// project's entries in a ball around its hub, unfiled entries in the
 /// middle, then linked entries pulled a little closer. Deterministic: the
 /// same data always gives the same picture, so nothing jumps between launches.
+///
+/// Stable as data grows: an entry's spot in its ball comes from its own id,
+/// and ball and ring sizes move in steps, so saving one more entry leaves
+/// everything else where it was.
 public struct GraphLayout: Sendable {
   public var nodePositions: [SIMD3<Float>]
   /// Hub position per project id.
@@ -23,7 +27,7 @@ public struct GraphLayout: Sendable {
     for (i, node) in graph.nodes.enumerated() { members[node.projectID, default: []].append(i) }
 
     func clusterRadius(_ count: Int) -> Float {
-      1.1 * Float(max(count, 1)).squareRoot().squareRoot() * 1.4
+      1.1 * Float(sizeStep(count)).squareRoot().squareRoot() * 1.4
     }
     let largest = members.values.map(\.count).max() ?? 1
     let projectIDs = graph.projects.map(\.id).filter { members[$0] != nil }
@@ -42,21 +46,9 @@ public struct GraphLayout: Sendable {
       let center = projectID.flatMap { hubs[$0] } ?? .zero
       let r = clusterRadius(members.count)
       restLength[projectID] = r * 0.35
-      // Slots in the ball go by a hash of the id, not by age, so entries
-      // saved one after another don't all end up on the same height.
-      let indexes = members.sorted {
-        SeededRandom.hash(graph.nodes[$0].id) < SeededRandom.hash(graph.nodes[$1].id)
-      }
-      for (k, index) in indexes.enumerated() {
+      for index in members {
         var rng = SeededRandom(graph.nodes[index].id)
-        // Even directions from a Fibonacci sphere; the distance from the hub
-        // follows a separate golden-ratio sequence so it doesn't line up with
-        // height (cube root fills the ball evenly). A little jitter on top.
-        let direction = fibonacciSphere(k, count: indexes.count)
-        let fraction = (Double(k) * 0.618_033_988_75).truncatingRemainder(dividingBy: 1)
-        let depth = Float(0.15 + 0.85 * cbrt(fraction))
-        let jitter = SIMD3<Float>(rng.next(), rng.next(), rng.next()) * 0.35
-        positions[index] = center + direction * r * depth + jitter
+        positions[index] = center + pointInBall(&rng) * r
       }
     }
 
@@ -80,6 +72,25 @@ public struct GraphLayout: Sendable {
 
     let radius = max(positions.map { simd_length($0) }.max() ?? 1, ring, 1) + 1
     return GraphLayout(nodePositions: positions, hubs: hubs, radius: radius)
+  }
+
+  /// `count` rounded up to the next step of a √2 ladder (1, 2, 3, 4, 6, 8,
+  /// 12, 16, …), so sizes derived from it change only now and then.
+  static func sizeStep(_ count: Int) -> Int {
+    guard count > 1 else { return 1 }
+    let steps = (2 * log2(Double(count))).rounded(.up)
+    return Int(pow(2, steps / 2).rounded(.up))
+  }
+
+  /// A point spread evenly through the unit ball, keeping out of the very
+  /// middle where the hub sits. Same generator, same point.
+  static func pointInBall(_ rng: inout SeededRandom) -> SIMD3<Float> {
+    for _ in 0..<64 {
+      let point = SIMD3<Float>(rng.next(), rng.next(), rng.next())
+      let length = simd_length_squared(point)
+      if length <= 1, length >= 0.15 * 0.15 { return point }
+    }
+    return [0.5, 0, 0]
   }
 
   /// Point `i` of `count` spread evenly on the unit sphere.

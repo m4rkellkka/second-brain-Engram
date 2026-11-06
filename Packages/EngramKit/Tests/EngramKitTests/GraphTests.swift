@@ -95,6 +95,42 @@ import simd
     #expect(spread(2) > spread(1) * 0.7)
   }
 
+  @Test func oneMoreEntryLeavesTheRestInPlace() {
+    // Saving an entry used to reshuffle its whole cluster and could move
+    // every hub, so the graph jumped on each live update.
+    let projects = (0..<6).map { i in
+      Project(
+        id: "p\(i)", name: "P\(i)", slug: "p\(i)", color: "#B79CFF", status: nil, summary: nil,
+        summarySource: .ai, statusSource: .ai, contextUpdatedAt: nil, archivedAt: nil,
+        createdAt: Date())
+    }
+    var nodes = (0..<1_200).map { i in
+      GraphSnapshot.Node(id: "e\(i)", projectID: "p\(i % 6)", kind: .note, content: "")
+    }
+    var links = (0..<1_194).map { GraphSnapshot.Link(source: $0, target: $0 + 6, weight: 0.9) }
+    let before = GraphLayout.compute(GraphSnapshot(projects: projects, nodes: nodes, links: links))
+
+    nodes.append(GraphSnapshot.Node(id: "new", projectID: "p0", kind: .idea, content: ""))
+    links.append(GraphSnapshot.Link(source: 1_194, target: 1_200, weight: 0.9))
+    let after = GraphLayout.compute(GraphSnapshot(projects: projects, nodes: nodes, links: links))
+
+    #expect(before.hubs == after.hubs)
+    let moved = (0..<1_200).map { simd_distance(before.nodePositions[$0], after.nodePositions[$0]) }
+    // Only the entry linked to the new one is pulled toward it (and its own
+    // neighbours a little); everything else stays put.
+    #expect(moved.enumerated().filter { $0.offset != 1_194 }.allSatisfy { $0.element < 0.6 })
+    #expect(moved.filter { $0 > 0.001 }.count < 6)
+  }
+
+  @Test func sizesGrowInSteps() {
+    #expect(GraphLayout.sizeStep(0) == 1)
+    #expect(GraphLayout.sizeStep(1) == 1)
+    #expect(GraphLayout.sizeStep(200) == GraphLayout.sizeStep(201))
+    let steps = (1...5_000).map(GraphLayout.sizeStep)
+    #expect(zip(steps, steps.dropFirst()).allSatisfy { $0 <= $1 })
+    #expect(zip(1...5_000, steps).allSatisfy { $0 <= $1 })
+  }
+
   @Test func emptyGraph() {
     let layout = GraphLayout.compute(.empty)
     #expect(layout.nodePositions.isEmpty)

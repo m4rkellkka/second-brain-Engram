@@ -39,4 +39,15 @@ import simd
     #expect(camera.nearest(to: [400, 300], among: points, size: size) == 0)
     #expect(camera.nearest(to: [10, 10], among: points, size: size) == nil)
   }
+
+  @Test func screenRadiusMatchesProjection() throws {
+    let camera = GraphCamera()
+    // A point one unit "up" from the target, seen from the camera.
+    let (centre, depth) = try #require(camera.project(camera.target, size: size))
+    let up = simd_normalize(
+      simd_cross(simd_cross(camera.target - camera.eye, [0, 1, 0]), camera.target - camera.eye))
+    let (edge, _) = try #require(camera.project(camera.target + up, size: size))
+    let expected = simd_distance(centre, edge)
+    #expect(abs(camera.screenRadius(of: 1, atDepth: depth, height: size.y) - expected) < 0.5)
+  }
 }
