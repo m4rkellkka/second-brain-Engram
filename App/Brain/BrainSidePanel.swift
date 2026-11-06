@@ -6,6 +6,8 @@ struct BrainSidePanel: View {
   @Environment(AppModel.self) private var model
   let selection: BrainSelection
   let graph: GraphSnapshot
+  /// Selects another node (a related entry) or project.
+  let select: (BrainSelection) -> Void
   let close: () -> Void
   @State private var page: ProjectPage?
 
@@ -18,6 +20,7 @@ struct BrainSidePanel: View {
     switch selection {
     case .project(let id): id
     case .node: node?.projectID
+    case .inbox: nil
     }
   }
 
@@ -51,6 +54,22 @@ struct BrainSidePanel: View {
           EntryCard(node: node)
         }
 
+        if selection == .inbox {
+          let count = graph.nodes.count { $0.projectID == nil && !$0.isJournal }
+          VStack(alignment: .leading, spacing: 6) {
+            Text("Inbox").font(.geist(20, .semibold)).foregroundStyle(Theme.text)
+            Text("\(count) entr\(count == 1 ? "y" : "ies") not filed in a project yet.")
+              .font(.geist(13))
+              .foregroundStyle(Theme.textMuted)
+          }
+        }
+
+        if let node, !related(to: node).isEmpty {
+          RelatedList(nodes: related(to: node), projects: graph.projects) { id in
+            select(.node(id))
+          }
+        }
+
         if let page {
           ProjectSummary(page: page)
           Button {
@@ -80,6 +99,63 @@ struct BrainSidePanel: View {
       do {
         for try await value in database.projectPageUpdates(projectID) { page = value }
       } catch {}
+    }
+  }
+}
+
+extension BrainSidePanel {
+  /// Linked nodes, strongest link first.
+  fileprivate func related(to node: GraphSnapshot.Node) -> [GraphSnapshot.Node] {
+    guard let index = graph.nodes.firstIndex(where: { $0.id == node.id }) else { return [] }
+    return graph.links
+      .filter { $0.source == index || $0.target == index }
+      .sorted { $0.weight > $1.weight }
+      .prefix(8)
+      .map { graph.nodes[$0.source == index ? $0.target : $0.source] }
+  }
+}
+
+/// "Related": a click selects the entry and the camera flies to it.
+private struct RelatedList: View {
+  let nodes: [GraphSnapshot.Node]
+  let projects: [Project]
+  let select: (String) -> Void
+
+  var body: some View {
+    let colors = Dictionary(
+      projects.map { ($0.id, $0.color) }, uniquingKeysWith: { first, _ in first })
+    VStack(alignment: .leading, spacing: 4) {
+      SectionLabel("Related · \(nodes.count)").padding(.bottom, 4)
+      ForEach(nodes) { node in
+        Button {
+          select(node.id)
+        } label: {
+          HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Circle()
+              .fill(
+                node.isJournal
+                  ? Theme.text
+                  : node.projectID.flatMap { colors[$0] }.map(Color.init(hexString:))
+                    ?? Theme.textSubtle
+              )
+              .frame(width: 6, height: 6)
+            Text(
+              node.isJournal
+                ? "journal · " + node.createdAt.formatted(.dateTime.day().month(.abbreviated))
+                  + " — " + node.content : node.content
+            )
+            .font(.geist(12.5))
+            .foregroundStyle(Theme.textMuted)
+            .lineLimit(2)
+            .multilineTextAlignment(.leading)
+            .frame(maxWidth: .infinity, alignment: .leading)
+          }
+          .padding(.vertical, 6)
+          .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .focusEffectDisabled()
+      }
     }
   }
 }
