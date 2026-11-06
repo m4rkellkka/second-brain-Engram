@@ -6,6 +6,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-11-06
+
+### Added
+
+- Watch your brain grow: a timeline under the graph plays entries (and journal days) in the order you saved them, at 1×, 4× or 16×, or scrub it by hand.
+- Filter the graph by project, kind, journal days, the Inbox and period (7 days to a year). Nothing moves; hidden dots just go away.
+- ⌘F finds entries and journal days in the graph: matches light up, the rest dims, Return flies to the next one.
+- Explore with the keyboard: arrows turn, +/− zoom, 0 fits everything, 1–9 focus a project, Tab walks along links (⇧Tab back), Return opens, Esc steps back.
+- The side panel lists an entry's related entries; click one to fly to it.
+- Unfiled entries glow as an "Inbox" nebula you can focus.
+
+### Changed
+
+- Tasks are drawn as rings, journal days as stars; done tasks stay dim.
+- Links across projects (and a journal day's links) show only when you hover, select or focus, so the graph is calmer.
+- Project labels no longer cover each other.
+- The demo graph (`make demo-graph`) spreads its 2,000 entries over a year and adds journal days.
+
+### Fixed
+
+- Very bright clusters no longer show square edges around their glow.
+
 ## [0.11.0] - 2026-11-06
 
 ### Added
@@ -230,7 +252,8 @@ Engram is now a native macOS app. The Next.js + Supabase web app (0.1.0–0.5.0)
 - GitHub Actions CI: lint, format check, typecheck and build.
 - MIT license.
 
-[Unreleased]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.11.0...HEAD
+[Unreleased]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.12.0...HEAD
+[0.12.0]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.9.2...v0.10.0
 [0.9.2]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.9.1...v0.9.2
