@@ -6,6 +6,10 @@ on:
   push:
     branches: [demo, dev]
 
+# Writing a draft GitHub Release needs write access to the repository.
+permissions:
+  contents: write
+
 jobs:
   check:
     if: startsWith(github.event.head_commit.message, 'chore')
@@ -24,3 +28,24 @@ jobs:
 
       - name: Build
         run: make build
+
+      # `chore(release): vX.Y.Z` also packs the app and drafts a GitHub
+      # Release for the tag. A draft is visible only to collaborators; it
+      # is published by hand once the release is checked.
+      - name: Pack release
+        if: startsWith(github.event.head_commit.message, 'chore(release)')
+        run: make release
+
+      - name: Draft GitHub Release
+        if: startsWith(github.event.head_commit.message, 'chore(release)')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION=$(sed -n 's/^MARKETING_VERSION = //p' Config/Version.xcconfig)
+          FILES="build/release/Engram-$VERSION.zip build/release/Engram-$VERSION.dmg build/release/SHA256SUMS.txt"
+          if gh release view "v$VERSION" >/dev/null 2>&1; then
+            gh release upload "v$VERSION" $FILES --clobber
+          else
+            gh release create "v$VERSION" $FILES --draft --prerelease \
+              --title "Engram $VERSION" --notes-file build/release/notes.md --target "$GITHUB_SHA"
+          fi
