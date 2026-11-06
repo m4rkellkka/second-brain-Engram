@@ -1,0 +1,20 @@
+name: Idea
+description: Suggest something Engram could do.
+labels: [idea]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What would it help with
+      description: The situation or problem, in your own words, before any solution.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: Your idea
+      description: How you picture it working.
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: What you do today instead

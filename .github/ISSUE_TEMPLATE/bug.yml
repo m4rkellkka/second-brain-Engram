@@ -1,0 +1,53 @@
+name: Bug report
+description: Something in Engram doesn't work as it should.
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open the Journal tab
+        2. …
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Engram version
+      description: Settings → About.
+      placeholder: "0.13.0"
+    validations:
+      required: true
+  - type: input
+    id: macos
+    attributes:
+      label: macOS version
+      placeholder: "macOS 26.1"
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Where
+      options:
+        - Saving from Claude (the connector)
+        - Today, Inbox or capture
+        - Projects
+        - Journal
+        - Brain graph
+        - Search
+        - Install or Settings
+        - Something else
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else
+      description: Screenshots, what Claude replied, or Console logs. Please leave out private notes.
