@@ -1,6 +1,9 @@
+import AppKit
+import EngramKit
 import SwiftUI
 
 struct SettingsView: View {
+  @Environment(AppModel.self) private var model
   @State private var connection = ClaudeConnection.current()
   @State private var error: String?
   @State private var justChanged = false
@@ -11,6 +14,10 @@ struct SettingsView: View {
         .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)
         .glassPanel()
+      ExportCard(database: model.database)
+        .padding(20)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .quietCard()
       about
         .padding(.horizontal, 20)
         .padding(.vertical, 16)
@@ -116,5 +123,69 @@ struct SettingsView: View {
     error = action()
     justChanged = error == nil
     connection = ClaudeConnection.current()
+  }
+}
+
+/// "Export to Markdown…": every entry, project page and journal day as
+/// plain files in a folder of your choice, ready to open in Obsidian.
+private struct ExportCard: View {
+  let database: AppDatabase?
+  @State private var exported: URL?
+  @State private var error: String?
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 12) {
+      VStack(alignment: .leading, spacing: 4) {
+        Text("Export").font(.geist(15, .semibold)).foregroundStyle(Theme.text)
+        Text(
+          "Everything as Markdown: one file per entry, a page per project and one per journal "
+            + "day. Open the folder in Obsidian or any editor."
+        )
+        .font(.geist(13))
+        .foregroundStyle(Theme.textMuted)
+        .fixedSize(horizontal: false, vertical: true)
+      }
+      HStack(spacing: 10) {
+        Button("Export to Markdown…", action: export)
+          .buttonStyle(QuietButtonStyle(height: 30))
+          .disabled(database == nil)
+        if let exported {
+          Button("Show in Finder") {
+            NSWorkspace.shared.activateFileViewerSelecting([exported])
+          }
+          .buttonStyle(.plain)
+          .font(.geist(12.5))
+          .foregroundStyle(Theme.accent)
+        }
+      }
+      if let error {
+        Text(error).font(.geist(12)).foregroundStyle(Theme.danger)
+      } else if let exported {
+        Text("Saved to \(exported.path)")
+          .font(.geistMono(11))
+          .foregroundStyle(Theme.textSubtle)
+          .lineLimit(2)
+          .truncationMode(.middle)
+      }
+    }
+  }
+
+  private func export() {
+    guard let database else { return }
+    let panel = NSOpenPanel()
+    panel.canChooseDirectories = true
+    panel.canChooseFiles = false
+    panel.canCreateDirectories = true
+    panel.allowsMultipleSelection = false
+    panel.prompt = "Export Here"
+    panel.message = "Engram makes a new \"Engram Export\" folder inside the one you pick."
+    guard panel.runModal() == .OK, let parent = panel.url else { return }
+    do {
+      exported = try database.exportMarkdown(into: parent)
+      error = nil
+    } catch {
+      self.error = "Couldn't export: \(error.localizedDescription)"
+      exported = nil
+    }
   }
 }
