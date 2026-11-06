@@ -112,6 +112,13 @@ Engram was rebuilt as a native macOS app on 2026-11-05 (see `docs/SPEC.md`). Pha
 - [x] 115 tests (filter, period, timeline, label placement, graph search, shapes)
 - [x] CHANGELOG, README, release v0.12.0
 
+## Phase 12 follow-up (v0.12.1, 10,000-entry demo)
+
+- [x] `make demo-graph COUNT=10000 PROJECTS=20`: up to 24 projects, entries always spread over one year
+- [x] Labels moved from SwiftUI buttons to Core Animation layers: 22 → 55–59 fps on 10,000 entries (Debug build), and the light rectangles under labels are gone
+- [x] Glow per dot scales down in big clusters, so they keep their color; clusters spread out as projects grow in number
+- [x] Brain header and search/filter share one row and no longer overlap with the side panel open
+
 ## Environments
 
 | What           | Where                                                        | Notes                                                             |
@@ -215,11 +222,11 @@ Rows before 2026-11-05 describe the web app (now on the `web-archive` branch).
 | 2026-11-06 | Graph keys through a local key monitor, by key code                                         | SwiftUI's gesture layer covers the Metal view; key codes work in the Russian layout too                  |
 | 2026-11-06 | Journal links show only on hover or focus, and journal days appear on the timeline          | Answers the open questions from Phase 11                                                                  |
 | 2026-11-06 | Timeline appearances glow softly; big jumps along the bar appear without a flash           | Full flashes for hundreds of nodes a second whited out clusters at 16×                                   |
+| 2026-11-06 | Graph labels are Core Animation layers in the Metal view, hit-tested by the renderer        | SwiftUI re-laid out twenty labels per frame (half the frame rate at 10,000 entries) and composited light rectangles under them |
 | 2026-11-06 | `get_journal` reads by date range only, no text search                                      | Enough for "how did I feel last week"; journal search for Claude is an idea for later                      |
 
 ## Open questions
 
-- [ ] A light rectangle sometimes flickers under a project label over a very bright cluster (also visible in the v0.9 screenshot); looks like the label layer and the Metal layer composite out of step. Revisit when recording the launch GIF
 - [ ] Keyboard navigation in the Brain checked in code only: macOS doesn't let the build tools send key presses, so it needs a hand check
 
 - [ ] Entries from one save show newest-first in the Inbox, so their order is reversed; fine for now, revisit with project pages
