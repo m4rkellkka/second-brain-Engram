@@ -1,6 +1,6 @@
 # Progress
 
-**Current version:** 0.12.0 · **Current phase:** Phase 13 — Open-source launch · status: **not started**
+**Current version:** 0.12.2 · **Current phase:** Phase 13 — Open-source launch · status: **not started**
 
 Engram was rebuilt as a native macOS app on 2026-11-05 (see `docs/SPEC.md`). Phases 0–5 shipped the Next.js + Supabase web app, kept on the `web-archive` branch.
 
@@ -118,6 +118,7 @@ Engram was rebuilt as a native macOS app on 2026-11-05 (see `docs/SPEC.md`). Pha
 - [x] Labels moved from SwiftUI buttons to Core Animation layers: 22 → 55–59 fps on 10,000 entries (Debug build), and the light rectangles under labels are gone
 - [x] Glow per dot scales down in big clusters, so they keep their color; clusters spread out as projects grow in number
 - [x] Brain header and search/filter share one row and no longer overlap with the side panel open
+- [x] v0.12.2: hover hit test once per frame inside the renderer, camera matrix built once per test, hover card in its own view: fast mouse moves over 10,000 entries 22 → 51–54 fps
 
 ## Environments
 

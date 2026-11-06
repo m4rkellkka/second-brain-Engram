@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.2] - 2026-11-06
+
+### Fixed
+
+- Moving the mouse quickly over a big graph no longer drops the frame rate (22 fps on 10,000 entries before, 51–54 now in a Debug build).
+
 ## [0.12.1] - 2026-11-06
 
 ### Fixed
@@ -265,7 +271,8 @@ Engram is now a native macOS app. The Next.js + Supabase web app (0.1.0–0.5.0)
 - GitHub Actions CI: lint, format check, typecheck and build.
 - MIT license.
 
-[Unreleased]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.12.1...HEAD
+[Unreleased]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.12.2...HEAD
+[0.12.2]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.12.1...v0.12.2
 [0.12.1]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.12.0...v0.12.1
 [0.12.0]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.10.0...v0.11.0

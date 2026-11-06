@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version" src="https://img.shields.io/badge/version-0.12.1-67E8F9">
+  <img alt="Version" src="https://img.shields.io/badge/version-0.12.2-67E8F9">
   <img alt="Status" src="https://img.shields.io/badge/status-in%20development-F2A65A">
   <img alt="License" src="https://img.shields.io/badge/license-MIT-3FD0B6">
   <img alt="Platform" src="https://img.shields.io/badge/macOS-15%2B-EDEDF0">
