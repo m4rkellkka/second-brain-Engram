@@ -38,7 +38,10 @@ public struct GraphLayout: Sendable {
     }
     let largest = members.values.map(\.count).max() ?? 1
     let projectIDs = graph.projects.map(\.id).filter { members[$0] != nil }
-    let ring = max(6, 2.8 * clusterRadius(largest))
+    // More projects share the sphere, so it grows with their number;
+    // otherwise twenty clusters crowd into each other.
+    let spread = max(2.8, 1.1 * Float(projectIDs.count).squareRoot())
+    let ring = max(6, spread * clusterRadius(largest))
 
     var hubs: [String: SIMD3<Float>] = [:]
     for (i, id) in projectIDs.enumerated() {
