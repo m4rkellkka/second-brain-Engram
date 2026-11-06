@@ -135,6 +135,23 @@ extension AppDatabase {
       projects: projects, totalEntries: totalEntries)
   }
 
+  /// How many things wait for the user: "not sure" entries plus typed
+  /// thoughts Claude hasn't sorted. The Inbox tab shows it as a badge.
+  public static func waitingCount(_ db: Database) throws -> Int {
+    try Int.fetchOne(
+      db,
+      sql: """
+        select
+          (select count(*) from entries where needs_review = 1)
+          + (select count(*) from entries e join captures c on c.id = e.capture_id
+             where c.source = 'typed' and c.status = 'unsorted')
+        """) ?? 0
+  }
+
+  public func waitingCountUpdates() -> AsyncValueObservation<Int> {
+    ValueObservation.tracking(Self.waitingCount).values(in: writer)
+  }
+
   /// The digest, re-emitted after every change. Restart it when the day
   /// changes, since `now` is fixed for the observation.
   public func todayUpdates(now: Date = Date(), calendar: Calendar = .current)

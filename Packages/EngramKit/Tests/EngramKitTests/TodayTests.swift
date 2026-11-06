@@ -65,6 +65,7 @@ import Testing
     #expect(digest.notSure.map(\.suggestion) == ["Диплом", nil])
     #expect(digest.notSure.first?.entries.count == 2)
     #expect(digest.waiting == 4)
+    #expect(try db.writer.read(AppDatabase.waitingCount) == digest.waiting)
     // Due within a week, overdue first; the far one and done ones stay out.
     #expect(digest.dueSoon.map(\.entry.content) == ["Overdue", "Hand in the lab"])
     // Archived projects and their entries are left out.

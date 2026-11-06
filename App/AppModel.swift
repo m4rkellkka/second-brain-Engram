@@ -3,24 +3,18 @@ import Foundation
 import GRDB
 import Observation
 
+/// The window's tabs, in the order they appear (and their ⌘1… shortcuts).
 enum Section: String, CaseIterable, Identifiable {
-  case inbox, projects, brain
+  case today, inbox, projects, brain
 
   var id: String { rawValue }
 
   var title: String {
     switch self {
+    case .today: "Today"
     case .inbox: "Inbox"
     case .projects: "Projects"
     case .brain: "Brain"
-    }
-  }
-
-  var symbol: String {
-    switch self {
-    case .inbox: "tray"
-    case .projects: "folder"
-    case .brain: "point.3.connected.trianglepath.dotted"
     }
   }
 }
@@ -33,7 +27,10 @@ final class AppModel {
 
   let database: AppDatabase?
   let loadError: String?
-  var section: Section = .inbox
+  /// The open tab; remembered so Engram reopens where you left it.
+  var section: Section = AppModel.savedSection() {
+    didSet { UserDefaults.standard.set(section.rawValue, forKey: Self.sectionKey) }
+  }
   /// Bumped to move keyboard focus into the window's capture field.
   var captureFocusToken = 0
   /// Bumped when the connector wrote to the database from its own process.
@@ -83,9 +80,17 @@ final class AppModel {
     section = .projects
   }
 
+  /// ⌘N: focus a capture field, staying on the Inbox if it is open.
   func startNewThought() {
-    section = .inbox
+    if section != .inbox { section = .today }
     captureFocusToken += 1
+  }
+
+  private static let sectionKey = "lastSection"
+
+  /// The tab open when Engram last quit; Today the first time.
+  private static func savedSection() -> Section {
+    UserDefaults.standard.string(forKey: sectionKey).flatMap(Section.init(rawValue:)) ?? .today
   }
 
   /// Saves a typed thought. Returns a message to show, or `nil` on success.

@@ -1,22 +1,20 @@
+import EngramKit
 import SwiftUI
 
+/// The main window: a top bar with the tabs, and the open tab below it.
 struct RootView: View {
   @Environment(AppModel.self) private var model
 
   var body: some View {
     @Bindable var model = model
-    NavigationSplitView {
-      Sidebar(selection: $model.section) { section in
-        // Clicking Projects in the sidebar goes back to the list.
-        if section == .projects { model.openProjectID = nil }
-      }
-      .navigationSplitViewColumnWidth(min: 200, ideal: 220, max: 260)
-    } detail: {
+    VStack(spacing: 0) {
+      TopBar()
       Group {
         if let error = model.loadError {
           EmptyState(symbol: "exclamationmark.triangle", title: "Engram can't start", text: error)
         } else {
           switch model.section {
+          case .today: TodayView()
           case .inbox: InboxView()
           case .projects: ProjectsView()
           case .brain: BrainView()
@@ -24,78 +22,123 @@ struct RootView: View {
         }
       }
       .frame(maxWidth: .infinity, maxHeight: .infinity)
-      .background(Theme.background)
     }
+    .background(Theme.background)
+    .ignoresSafeArea(.container, edges: .top)
     .sheet(isPresented: $model.isSearching) { SearchPalette() }
-    .toolbar(removing: .title)
-    .toolbarBackground(Theme.background, for: .windowToolbar)
     .containerBackground(Theme.background, for: .window)
   }
 }
 
-private struct Sidebar: View {
-  @Binding var selection: Section
-  let onSelect: (Section) -> Void
+/// Tabs in the middle, search and settings on the right. The window's own
+/// title bar is hidden, so the empty parts of this bar drag the window.
+private struct TopBar: View {
+  @Environment(AppModel.self) private var model
+  @State private var waiting = 0
+
+  static let height: CGFloat = 52
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 0) {
+    @Bindable var model = model
+    ZStack {
+      Color.clear
+        .contentShape(Rectangle())
+        .gesture(WindowDragGesture())
+
+      SectionTabs(selection: $model.section, inboxBadge: waiting) { section in
+        // Clicking Projects again goes back to the list.
+        if section == .projects { model.openProjectID = nil }
+      }
+
       HStack(spacing: 8) {
-        Image(systemName: "point.3.connected.trianglepath.dotted")
-          .foregroundStyle(Theme.accent)
-        Text("Engram").font(.geist(15, .semibold)).foregroundStyle(Theme.text)
-      }
-      .padding(.horizontal, 16)
-      .padding(.top, 6)
-      .padding(.bottom, 14)
-
-      VStack(spacing: 2) {
-        ForEach(Section.allCases) { section in
-          SidebarRow(section: section, isSelected: section == selection) {
-            selection = section
-            onSelect(section)
+        Spacer()
+        Button {
+          model.isSearching = true
+        } label: {
+          HStack(spacing: 8) {
+            Image(systemName: "magnifyingglass").font(.system(size: 12, weight: .medium))
+            Text("Search").font(.geist(13))
+            Text("⌘K").font(.geistMono(11)).foregroundStyle(Theme.textSubtle)
           }
+          .foregroundStyle(Theme.textMuted)
+          .padding(.horizontal, 12)
+          .frame(height: 30)
+          .glassPanel(radius: 9)
+          .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
+        .focusEffectDisabled()
+        .help("Search your notes (⌘K)")
+
+        SettingsLink {
+          Image(systemName: "slider.horizontal.3")
+            .font(.system(size: 12, weight: .medium))
+            .foregroundStyle(Theme.textMuted)
+            .frame(width: 30, height: 30)
+            .glassPanel(radius: 9)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .focusEffectDisabled()
+        .help("Settings (⌘,)")
+        .accessibilityLabel("Settings")
       }
-      .padding(.horizontal, 8)
-
-      Spacer()
-
-      Text("v\(Bundle.main.appVersion)")
-        .font(.geistMono(11))
-        .foregroundStyle(Theme.textSubtle)
-        .padding(16)
+      .padding(.trailing, 16)
     }
-    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-    .background(Theme.background)
+    // Room on the left for the window's traffic lights.
+    .padding(.leading, 78)
+    .frame(height: Self.height)
+    .background(Theme.background.opacity(0.92))
+    .overlay(alignment: .bottom) { Rectangle().fill(Theme.border).frame(height: 1) }
+    .task(id: model.externalChanges) {
+      guard let database = model.database else { return }
+      do {
+        for try await value in database.waitingCountUpdates() { waiting = value }
+      } catch {}
+    }
   }
 }
 
-private struct SidebarRow: View {
-  let section: Section
-  let isSelected: Bool
-  let action: () -> Void
+/// The segmented tabs in the top bar.
+private struct SectionTabs: View {
+  @Binding var selection: Section
+  let inboxBadge: Int
+  let onSelect: (Section) -> Void
 
   var body: some View {
-    Button(action: action) {
-      HStack(spacing: 10) {
-        Image(systemName: section.symbol)
-          .frame(width: 18)
-          .foregroundStyle(isSelected ? Theme.accent : Theme.textMuted)
-        Text(section.title)
-          .font(.geist(13.5, isSelected ? .medium : .regular))
-          .foregroundStyle(isSelected ? Theme.text : Theme.textMuted)
-        Spacer()
+    HStack(spacing: 2) {
+      ForEach(Section.allCases) { section in
+        let isSelected = section == selection
+        Button {
+          selection = section
+          onSelect(section)
+        } label: {
+          HStack(spacing: 6) {
+            Text(section.title)
+              .font(.geist(13, isSelected ? .medium : .regular))
+              .foregroundStyle(isSelected ? Theme.accent : Theme.textMuted)
+            if section == .inbox, inboxBadge > 0 {
+              Text("\(inboxBadge)")
+                .font(.geistMono(11))
+                .foregroundStyle(isSelected ? Theme.text : Theme.accent)
+            }
+          }
+          .padding(.horizontal, 14)
+          .frame(height: 28)
+          .background(
+            RoundedRectangle(cornerRadius: 9, style: .continuous)
+              .fill(isSelected ? Theme.accentWash : .clear)
+          )
+          .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .focusEffectDisabled()
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .help("\(section.title) (⌘\((Section.allCases.firstIndex(of: section) ?? 0) + 1))")
       }
-      .padding(.horizontal, 10)
-      .frame(height: 32)
-      .background(
-        RoundedRectangle(cornerRadius: Theme.controlRadius)
-          .fill(isSelected ? Theme.surface2 : .clear)
-      )
-      .contentShape(Rectangle())
     }
-    .buttonStyle(.plain)
-    .focusEffectDisabled()
+    .padding(3)
+    .glassPanel(radius: 12)
   }
 }
 
@@ -108,6 +151,6 @@ extension Bundle {
 #Preview("Window") {
   RootView()
     .environment(AppModel.preview())
-    .frame(width: 1000, height: 680)
+    .frame(width: 1040, height: 720)
     .preferredColorScheme(.dark)
 }

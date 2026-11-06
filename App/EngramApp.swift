@@ -21,6 +21,8 @@ struct EngramApp: App {
         .tint(Theme.accent)
     }
     .defaultSize(width: 1040, height: 720)
+    // The top bar with the tabs takes the title bar's place.
+    .windowStyle(.hiddenTitleBar)
     .commands { EngramCommands(model: model) }
 
     Settings {
@@ -69,6 +71,18 @@ struct EngramCommands: Commands {
         model.isSearching = true
       }
       .keyboardShortcut("k")
+    }
+    // ⌘1… switch tabs, in the order they appear in the top bar.
+    CommandGroup(before: .toolbar) {
+      ForEach(Array(Section.allCases.enumerated()), id: \.element) { index, section in
+        Button(section.title) {
+          openWindow(id: AppModel.mainWindowID)
+          model.section = section
+          if section == .projects { model.openProjectID = nil }
+        }
+        .keyboardShortcut(KeyEquivalent(Character("\(index + 1)")))
+      }
+      Divider()
     }
   }
 }
