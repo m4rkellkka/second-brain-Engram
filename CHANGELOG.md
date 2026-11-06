@@ -6,6 +6,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-11-06
+
+### Added
+
+- Today tab, the new first tab: your day at a glance with the capture field, today's entries, what waits for you ("not sure" groups with a one-click "Create and file", unsorted thoughts), tasks due within a week, your busiest projects and a small picture of the graph.
+- Tabs across the top (Today · Inbox · Projects · Brain) with ⌘1…⌘4; Engram reopens on the tab you left.
+- The Inbox tab shows how many things wait for you; so does the menu-bar popover.
+- "Not sure" filter in the Inbox, and "not sure" entries grouped by the project Claude suggested.
+- Project cards say "+N today" when something landed in them today.
+- "Show in Brain" on a project page flies to the project in the graph; project chips under the graph do the same.
+- ⌘K also finds projects by name and highlights the words you searched for.
+- Settings → About with the version and a link to GitHub.
+
+### Changed
+
+- New look everywhere: a near-black background, glass panels with a thin cool border, and a cyan accent. The sidebar is gone; its tabs moved to a bar at the top of the window.
+- The Inbox is a list grouped by day instead of one card per entry; kind and project stay one click to fix.
+- Projects show as a grid of cards; the project page puts tasks, decisions, ideas and stack side by side.
+- The Brain's header, hover card and side panel are glass over the graph.
+
 ## [0.9.2] - 2026-11-06
 
 ### Fixed
@@ -197,7 +217,8 @@ Engram is now a native macOS app. The Next.js + Supabase web app (0.1.0–0.5.0)
 - GitHub Actions CI: lint, format check, typecheck and build.
 - MIT license.
 
-[Unreleased]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.9.2...HEAD
+[Unreleased]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.10.0...HEAD
+[0.10.0]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.9.2...v0.10.0
 [0.9.2]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.9.1...v0.9.2
 [0.9.1]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.8.0...v0.9.0
