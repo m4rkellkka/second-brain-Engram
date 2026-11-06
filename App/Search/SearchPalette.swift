@@ -7,6 +7,7 @@ struct SearchPalette: View {
   @Environment(\.dismiss) private var dismiss
   @State private var query = ""
   @State private var results: [InboxItem] = []
+  @State private var journal: [JournalHit] = []
   @State private var projects: [Project] = []
   @State private var expanded: Set<String> = []
   @FocusState private var focused: Bool
@@ -67,11 +68,46 @@ struct SearchPalette: View {
               .focusEffectDisabled()
             }
           }
-          if results.isEmpty, matchingProjects.isEmpty {
-            Text(query.isEmpty ? "Type to search entries and keywords." : "Nothing found.")
-              .font(.geist(13))
-              .foregroundStyle(Theme.textSubtle)
-              .padding(18)
+          if !journal.isEmpty {
+            SectionLabel("Journal")
+              .padding(.horizontal, 10).padding(.top, 12).padding(.bottom, 4)
+            ForEach(journal) { hit in
+              Button {
+                model.openJournal(hit.day == JournalDate.key(Date()) ? nil : hit.day)
+                dismiss()
+              } label: {
+                VStack(alignment: .leading, spacing: 4) {
+                  Text(highlighted(hit.paragraph.text))
+                    .font(.geist(14))
+                    .foregroundStyle(Theme.text)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                  HStack(spacing: 0) {
+                    Text("journal").foregroundStyle(Theme.text)
+                    Text(" · ")
+                    Text(hit.date, format: .dateTime.weekday(.wide).day().month(.abbreviated))
+                    Spacer()
+                    Text("open").font(.geistMono(11)).foregroundStyle(Theme.accent)
+                  }
+                  .font(.geist(12))
+                  .foregroundStyle(Theme.textSubtle)
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
+                .contentShape(Rectangle())
+              }
+              .buttonStyle(.plain)
+              .focusEffectDisabled()
+            }
+          }
+          if results.isEmpty, matchingProjects.isEmpty, journal.isEmpty {
+            Text(
+              query.isEmpty ? "Type to search entries, keywords and the journal." : "Nothing found."
+            )
+            .font(.geist(13))
+            .foregroundStyle(Theme.textSubtle)
+            .padding(18)
           }
           if !results.isEmpty {
             SectionLabel("Entries · \(results.count)")
@@ -95,7 +131,7 @@ struct SearchPalette: View {
         Text("click to expand · ↗ opens the project")
         Spacer()
         Text(
-          "\(results.count) entr\(results.count == 1 ? "y" : "ies") · \(matchingProjects.count) project\(matchingProjects.count == 1 ? "" : "s")"
+          "\(results.count) entr\(results.count == 1 ? "y" : "ies") · \(matchingProjects.count) project\(matchingProjects.count == 1 ? "" : "s") · \(journal.count) day\(journal.count == 1 ? "" : "s")"
         )
       }
       .font(.geistMono(11))
@@ -106,7 +142,12 @@ struct SearchPalette: View {
     .frame(width: 640)
     .background(Theme.glass)
     .background(.ultraThinMaterial)
-    .onAppear { focused = true }
+    .onAppear {
+      focused = true
+      #if DEBUG
+        if let text = UserDefaults.standard.string(forKey: "EngramSearch") { query = text }
+      #endif
+    }
     .task(id: model.externalChanges) {
       guard let database = model.database else { return }
       projects = (try? await database.writer.read(AppDatabase.fetchActiveProjects)) ?? []
@@ -117,6 +158,8 @@ struct SearchPalette: View {
       let text = query
       guard let database = model.database else { return }
       results = (try? await database.writer.read { try AppDatabase.search($0, query: text) }) ?? []
+      journal =
+        (try? await database.writer.read { try AppDatabase.searchJournal($0, query: text) }) ?? []
     }
   }
 
