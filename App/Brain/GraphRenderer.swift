@@ -96,7 +96,7 @@ final class GraphRenderer: NSObject, MTKViewDelegate {
   private var backingScale: Float = 2
 
   static let unfiledColor = SIMD3<Float>(0.56, 0.56, 0.6)
-  static let accent = SIMD3<Float>(0x8B, 0x9C, 0xFF) / 255
+  static let accent = SIMD3<Float>(0x67, 0xE8, 0xF9) / 255
   /// Hub core and halo radii in world units.
   private static let hubRadius: Float = 0.42
   private static let haloRadius: Float = 1.4

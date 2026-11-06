@@ -47,14 +47,9 @@ struct BrainSidePanel: View {
           Button {
             model.openProject(page.project.id)
           } label: {
-            Text("Open project")
-              .font(.geist(13, .medium))
-              .foregroundStyle(Theme.onAccent)
-              .frame(maxWidth: .infinity)
-              .frame(height: 34)
-              .background(RoundedRectangle(cornerRadius: Theme.controlRadius).fill(Theme.accent))
+            Text("Open project").frame(maxWidth: .infinity)
           }
-          .buttonStyle(.plain)
+          .buttonStyle(AccentButtonStyle(height: 34))
           .focusEffectDisabled()
         } else if projectID == nil {
           Text("Not filed in a project yet. Pick one in the Inbox.")
@@ -143,7 +138,7 @@ private struct ProjectSummary: View {
 
       VStack(alignment: .leading, spacing: 8) {
         HStack {
-          Text("LIVE CONTEXT").font(.geistMono(11, .medium)).foregroundStyle(Theme.textSubtle)
+          SectionLabel("Live context")
           Spacer()
           Text(page.project.summarySource == .user ? "edited by you" : "by Claude")
             .font(.geist(11.5))
@@ -160,7 +155,7 @@ private struct ProjectSummary: View {
         .sorted { $0.entry.createdAt > $1.entry.createdAt }.prefix(5)
       if !recent.isEmpty {
         VStack(alignment: .leading, spacing: 8) {
-          Text("RECENT").font(.geistMono(11, .medium)).foregroundStyle(Theme.textSubtle)
+          SectionLabel("Recent")
           ForEach(Array(recent)) { item in
             HStack(alignment: .firstTextBaseline, spacing: 8) {
               Circle().fill(Theme.kindColor(item.entry.kind.rawValue)).frame(width: 5, height: 5)
@@ -184,6 +179,7 @@ private struct Stat: View {
     VStack(alignment: .leading, spacing: 2) {
       Text("\(value)").font(.geist(18, .semibold)).foregroundStyle(Theme.text)
       Text(label).font(.geist(11.5)).foregroundStyle(Theme.textSubtle)
+        .lineLimit(1).minimumScaleFactor(0.8)
     }
     .padding(10)
     .frame(maxWidth: .infinity, alignment: .leading)

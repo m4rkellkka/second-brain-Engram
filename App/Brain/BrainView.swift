@@ -32,21 +32,17 @@ struct BrainView: View {
                 select: { setSelection(.project($0)) },
                 hover: { holder.renderer?.hoveredProject = $0 })
             }
-            // Keeps labels that drift under the header from showing through it.
-            LinearGradient(
-              stops: [
-                .init(color: Theme.background.opacity(0.95), location: 0),
-                .init(color: Theme.background.opacity(0.85), location: 0.6),
-                .init(color: Theme.background.opacity(0), location: 1),
-              ],
-              startPoint: .top, endPoint: .bottom
-            )
-            .frame(height: 170)
-            .allowsHitTesting(false)
+            // Glass header: labels drifting under it blur instead of
+            // showing through.
             Header(graph: graph, focused: selection != nil) {
               setSelection(nil)
             }
             .padding(20)
+            ProjectLegend(projects: graph.projects, focused: focusedProject) { id in
+              setSelection(id == focusedProject ? nil : .project(id))
+            }
+            .padding(20)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
             if let hovered, hovered < graph.nodes.count,
               selection != .node(graph.nodes[hovered].id)
             {
@@ -60,7 +56,7 @@ struct BrainView: View {
                   .font(.geistMono(11))
                   .foregroundStyle(Theme.textSubtle)
               }
-              .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+              .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
               .padding(14)
               .allowsHitTesting(false)
             #endif
@@ -175,6 +171,15 @@ struct BrainView: View {
     }
   }
 
+  /// The project the camera is on, from either kind of selection.
+  private var focusedProject: String? {
+    switch selection {
+    case .project(let id): id
+    case .node(let id): graph.nodes.first { $0.id == id }?.projectID
+    case nil: nil
+    }
+  }
+
   private func project(of index: Int) -> Project? {
     graph.nodes[index].projectID.flatMap { id in graph.projects.first { $0.id == id } }
   }
@@ -211,7 +216,7 @@ struct MetalGraphView: NSViewRepresentable {
     view.onZoom = { [holder] factor in holder.renderer?.zoom(by: factor) }
     view.colorPixelFormat = .bgra8Unorm
     view.sampleCount = 4
-    view.clearColor = MTLClearColor(red: 0x09 / 255, green: 0x09 / 255, blue: 0x0B / 255, alpha: 1)
+    view.clearColor = MTLClearColor(red: 0x05 / 255, green: 0x06 / 255, blue: 0x0B / 255, alpha: 1)
     view.preferredFramesPerSecond = 120
     view.layer?.isOpaque = true
     if let renderer = GraphRenderer(view: view) {
@@ -335,7 +340,7 @@ private struct Header: View {
 
   var body: some View {
     VStack(alignment: .leading, spacing: 4) {
-      Text("Your brain").font(.geist(20, .semibold)).foregroundStyle(Theme.text)
+      Text("Your brain").font(.geist(18, .semibold)).foregroundStyle(Theme.text)
       Text(
         "\(graph.nodes.count) entries · \(graph.links.count) links · \(graph.projects.count) projects"
       )
@@ -350,6 +355,9 @@ private struct Header: View {
       }
       .padding(.top, 4)
     }
+    .padding(.horizontal, 16)
+    .padding(.vertical, 14)
+    .glassPanel(radius: 16)
   }
 
   private func hintRow(_ hint: String?) -> some View {
@@ -384,12 +392,51 @@ private struct HoverLabel: View {
       }
       Text(node.content).font(.geist(13)).foregroundStyle(Theme.text).lineLimit(3)
     }
-    .padding(10)
+    .padding(12)
     .frame(width: 280, alignment: .leading)
-    .background(
-      RoundedRectangle(cornerRadius: Theme.controlRadius).fill(Theme.surface2.opacity(0.96))
-    )
-    .overlay(RoundedRectangle(cornerRadius: Theme.controlRadius).stroke(Theme.borderStrong))
+    .glassPanel(radius: 12)
+  }
+}
+
+/// Project chips along the bottom; a click flies to the project (or back).
+private struct ProjectLegend: View {
+  let projects: [Project]
+  let focused: String?
+  let select: (String) -> Void
+
+  var body: some View {
+    ScrollView(.horizontal, showsIndicators: false) {
+      chips
+    }
+    .fixedSize(horizontal: false, vertical: true)
+  }
+
+  private var chips: some View {
+    HStack(spacing: 6) {
+      ForEach(projects) { project in
+        let isFocused = project.id == focused
+        Button {
+          select(project.id)
+        } label: {
+          HStack(spacing: 6) {
+            Circle().fill(Color(hexString: project.color)).frame(width: 7, height: 7)
+            Text(project.name).font(.geist(12.5)).lineLimit(1).fixedSize()
+          }
+          .foregroundStyle(isFocused ? Theme.text : Theme.textMuted)
+          .padding(.horizontal, 10)
+          .frame(height: 28)
+          .background(Capsule().fill(isFocused ? Theme.accentWash : Theme.glass))
+          .overlay(
+            Capsule().strokeBorder(
+              isFocused ? Theme.accent.opacity(0.45) : Theme.borderStrong.opacity(0.7))
+          )
+          .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .focusEffectDisabled()
+        .accessibilityLabel("Focus \(project.name)")
+      }
+    }
   }
 }
 
