@@ -158,13 +158,16 @@ private struct ProjectCard: View {
           .multilineTextAlignment(.leading)
           .frame(maxWidth: .infinity, alignment: .leading)
         Spacer(minLength: 0)
+        // One line: the counts win, the time gives way on narrow cards.
         HStack {
           Text("\(row.openTasks) open · \(row.entryCount) entr\(row.entryCount == 1 ? "y" : "ies")")
-          Spacer()
+            .layoutPriority(1)
+          Spacer(minLength: 8)
           if let activity = row.lastActivity {
             Text(activity, format: .relative(presentation: .named))
           }
         }
+        .lineLimit(1)
         .font(.geistMono(11))
         .foregroundStyle(Theme.textSubtle)
       }
