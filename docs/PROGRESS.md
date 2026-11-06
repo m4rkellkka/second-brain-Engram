@@ -1,6 +1,6 @@
 # Progress
 
-**Current version:** 0.11.0 · **Current phase:** Phase 12 — Brain 2.0 · status: **not started**
+**Current version:** 0.12.0 · **Current phase:** Phase 13 — Open-source launch · status: **not started**
 
 Engram was rebuilt as a native macOS app on 2026-11-05 (see `docs/SPEC.md`). Phases 0–5 shipped the Next.js + Supabase web app, kept on the `web-archive` branch.
 
@@ -13,7 +13,7 @@ Engram was rebuilt as a native macOS app on 2026-11-05 (see `docs/SPEC.md`). Pha
 | 9     | Brain graph                  | done (v0.9.0)          |
 | 10    | Redesign                     | done (v0.10.0)         |
 | 11    | Journal                      | done (v0.11.0)         |
-| 12    | Brain 2.0                    | —                      |
+| 12    | Brain 2.0                    | done (v0.12.0)         |
 | 13    | Open-source launch           | —                      |
 
 ## Phase 6 checklist (done)
@@ -100,6 +100,17 @@ Engram was rebuilt as a native macOS app on 2026-11-05 (see `docs/SPEC.md`). Pha
 - [x] 108 tests (14 journal + 1 connector); eval: 2 journal conversations and a "how did I feel" question
 - [x] Eval on 2026-11-06 (Sonnet, `claude -p`): "write to my journal" lands on today, "for yesterday" on the 5th, "how did I feel last week?" answered from 5 journal days; the first run also wrote an unasked journal paragraph for "save all this to Engram", fixed in the tool description and re-checked
 - [x] CHANGELOG, README, release v0.11.0
+
+## Phase 12 checklist (done)
+
+- [x] Shapes in the sprite shader: rings for tasks, stars for journal days, an "Inbox" nebula for unfiled entries
+- [x] Cross-project and journal links only on hover, selection or focus; only links inside a project pulse
+- [x] Filter popover (projects, Inbox, journal days, kinds, period) and ⌘F search through FTS; both only change visibility
+- [x] Labels placed without overlaps (`LabelPlacer`); related entries in the side panel fly to the entry
+- [x] Keyboard: Esc, arrows, +/−, 0, 1–9, Tab/⇧Tab walk, Return opens
+- [x] Timeline with play and 1×/4×/16×, journal days on it too; 59–60 fps at 16× on 2,000 entries (`make demo-graph`, `-EngramPlayTimeline 16`)
+- [x] 115 tests (filter, period, timeline, label placement, graph search, shapes)
+- [x] CHANGELOG, README, release v0.12.0
 
 ## Environments
 
@@ -197,9 +208,19 @@ Rows before 2026-11-05 describe the web app (now on the `web-archive` branch).
 | 2026-11-06 | No "Edit" button: click a paragraph to edit it, clear it to remove it                      | One mode less, keyboard-friendly (Return saves, Esc cancels)                                              |
 | 2026-11-06 | Journal days on a spiral above the clusters (a turn a month); their links pull on nothing  | Deterministic like the rest of the layout, and project clusters keep their shape                          |
 | 2026-11-06 | `write_journal` only on an explicit journal/diary request, never for "save this to Engram" | Eval: Claude added a diary paragraph nobody asked for when a save talked about the day                     |
+| 2026-11-06 | Filters, search and the timeline only change per-node visibility, never the layout         | Phase 12 "done when"; also keeps them cheap enough for 60 fps while the timeline plays                    |
+| 2026-11-06 | Filters hide nodes completely; ⌘F search dims misses to 8%                                 | A filter means "not now", a search means "where is it among everything"                                   |
+| 2026-11-06 | Timeline paced by save order: the whole history in 30 s at 1×                              | Empty weeks would stall a calendar-paced playback; the launch GIF needs steady growth                      |
+| 2026-11-06 | Legend chips focus a project; hiding projects lives in the filter popover                  | One control shouldn't mean "focus" in one place and "hide" in another                                     |
+| 2026-11-06 | Graph keys through a local key monitor, by key code                                         | SwiftUI's gesture layer covers the Metal view; key codes work in the Russian layout too                  |
+| 2026-11-06 | Journal links show only on hover or focus, and journal days appear on the timeline          | Answers the open questions from Phase 11                                                                  |
+| 2026-11-06 | Timeline appearances glow softly; big jumps along the bar appear without a flash           | Full flashes for hundreds of nodes a second whited out clusters at 16×                                   |
 | 2026-11-06 | `get_journal` reads by date range only, no text search                                      | Enough for "how did I feel last week"; journal search for Claude is an idea for later                      |
 
 ## Open questions
+
+- [ ] A light rectangle sometimes flickers under a project label over a very bright cluster (also visible in the v0.9 screenshot); looks like the label layer and the Metal layer composite out of step. Revisit when recording the launch GIF
+- [ ] Keyboard navigation in the Brain checked in code only: macOS doesn't let the build tools send key presses, so it needs a hand check
 
 - [ ] Entries from one save show newest-first in the Inbox, so their order is reversed; fine for now, revisit with project pages
 - [ ] Is "Engram" free on GitHub and as a Mac app name?

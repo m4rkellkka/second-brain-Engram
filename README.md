@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version" src="https://img.shields.io/badge/version-0.11.0-67E8F9">
+  <img alt="Version" src="https://img.shields.io/badge/version-0.12.0-67E8F9">
   <img alt="Status" src="https://img.shields.io/badge/status-in%20development-F2A65A">
   <img alt="License" src="https://img.shields.io/badge/license-MIT-3FD0B6">
   <img alt="Platform" src="https://img.shields.io/badge/macOS-15%2B-EDEDF0">
@@ -23,7 +23,8 @@
 > **Work in progress.** Engram is being built in public, one phase at a time.
 > Today: a Today tab with your day at a glance, a journal you can tell Claude or write yourself,
 > capture from the menu bar, an Inbox, search, a Claude Desktop connector that saves your
-> conversations, project pages that keep themselves up to date, and a 3D graph of it all.
+> conversations, project pages that keep themselves up to date, and a 3D graph of it all that
+> you can filter, search, walk with the keyboard and watch grow.
 
 ## Why
 
@@ -47,7 +48,7 @@ your projects. Manual systems fail because filing is work and the payoff comes l
 | 9     | Brain graph (3D)                                        | ✅ v0.9.0 |
 | 10    | Redesign: tabs on top, dark glass, a Today tab          | ✅ v0.10.0 |
 | 11    | Journal: a diary page per day, with Claude or by hand   | ✅ v0.11.0 |
-| 12    | Brain 2.0: filters, search, keyboard, timeline          | ⏳        |
+| 12    | Brain 2.0: filters, search, keyboard, timeline          | ✅ v0.12.0 |
 | 13    | Open-source launch: releases, export, install guide     | ⏳        |
 
 See [CHANGELOG.md](CHANGELOG.md) for what each release contains.
