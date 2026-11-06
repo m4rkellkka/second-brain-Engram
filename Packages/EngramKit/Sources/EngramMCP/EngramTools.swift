@@ -12,9 +12,10 @@ public enum EngramTools {
     asks you to save, remember or file something. Keep project pages current with \
     update_project (description, status, stack, decisions, ideas) and tick finished tasks with \
     complete_task. The user also keeps a journal, one page per day: write_journal adds to it \
-    when the user tells you how their day went or asks you to note something in their diary, \
-    and get_journal reads it when they ask how they felt or what happened on some days. Reply \
-    to the user in their language.
+    only when the user explicitly asks for their journal or diary ("запиши в дневник"); \
+    "save this to Engram" means save_to_engram alone, never the journal. get_journal reads the \
+    journal when they ask how they felt or what happened on some days. Reply to the user in \
+    their language.
     """
 
   static let entryRules = """
@@ -244,9 +245,10 @@ public enum EngramTools {
       name: "write_journal",
       title: "Write to the journal",
       description: """
-        Add a paragraph to the user's journal (diary) in Engram. Use it when the user tells you \
-        how their day went, how they feel, or asks to write something to their journal \
-        ("запиши в дневник", "write to my journal"). Write in the first person, as the user, in \
+        Add a paragraph to the user's journal (diary) in Engram. Use it only when the user \
+        explicitly asks for the journal or diary ("запиши в дневник", "write to my journal"). \
+        Don't use it for "save this to Engram" or "запомни"; those go to save_to_engram only, \
+        even when the user talks about their day. Write in the first person, as the user, in \
         their language: what happened and how they felt, 2 to 8 sentences, keeping their own \
         words where you can. Don't invent anything they didn't say.
         date: the local day (YYYY-MM-DD) it is about; leave it out for today. Use it when the \
