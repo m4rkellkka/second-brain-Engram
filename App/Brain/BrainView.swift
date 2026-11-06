@@ -9,8 +9,6 @@ struct BrainView: View {
   @Environment(AppModel.self) private var model
   @State private var holder = RendererHolder()
   @State private var graph = GraphSnapshot.empty
-  @State private var pointer: CGPoint = .zero
-  @State private var hovered: Int?
   @State private var dragStart: CGSize = .zero
   @State private var selection: BrainSelection?
   @State private var filter = GraphFilter()
@@ -62,12 +60,10 @@ struct BrainView: View {
             Button("Find in graph") { searchFocused = true }
               .keyboardShortcut("f")
               .hidden()
-            if let hovered, hovered < graph.nodes.count,
-              selection != .node(graph.nodes[hovered].id)
-            {
-              HoverLabel(node: graph.nodes[hovered], project: project(of: hovered))
-                .position(labelPosition(in: geometry.size))
-                .allowsHitTesting(false)
+            if let renderer = holder.renderer {
+              HoverCard(
+                state: renderer.hoverState, graph: graph, selection: selection,
+                size: geometry.size)
             }
             #if DEBUG
               TimelineView(.periodic(from: .now, by: 0.5)) { _ in
@@ -143,7 +139,7 @@ struct BrainView: View {
             setSelection(.project(id))
           }
           // Indexes may mean other entries now; selection is kept by id.
-          hover(nil)
+          clearHover()
           if case .node(let id) = selection, holder.renderer?.index(of: id) == nil {
             setSelection(nil)
           } else {
@@ -185,7 +181,7 @@ struct BrainView: View {
             height: value.translation.height - dragStart.height)
           dragStart = value.translation
           holder.renderer?.orbit(by: step)
-          hover(nil)
+          clearHover()
         }
         .onEnded { _ in dragStart = .zero }
     )
@@ -196,21 +192,11 @@ struct BrainView: View {
       case nil: setSelection(nil)
       }
     }
+    // The renderer hit-tests the latest position once per frame.
     .onContinuousHover { phase in
       switch phase {
-      case .active(let location):
-        pointer = location
-        switch holder.renderer?.hit(at: location, size: size) {
-        case .node(let index):
-          hover(index)
-        case .hub(let projectID):
-          hover(nil)
-          holder.renderer?.hoveredProject = projectID
-        case nil:
-          hover(nil)
-        }
-      case .ended:
-        hover(nil)
+      case .active(let location): holder.renderer?.movePointer(to: location)
+      case .ended: holder.renderer?.movePointer(to: nil)
       }
     }
   }
@@ -225,10 +211,10 @@ struct BrainView: View {
     .fixedSize()
   }
 
-  private func hover(_ index: Int?) {
-    hovered = index
-    holder.renderer?.hoveredNode = index
-    holder.renderer?.hoveredProject = nil
+  /// Drops the hover (a drag started, or the graph changed under it).
+  private func clearHover() {
+    holder.renderer?.movePointer(to: nil)
+    holder.renderer?.clearHover()
   }
 
   private func setSelection(_ value: BrainSelection?, walking: Bool = false) {
@@ -371,16 +357,6 @@ struct BrainView: View {
     case nil:
       break
     }
-  }
-
-  private func project(of index: Int) -> Project? {
-    graph.nodes[index].projectID.flatMap { id in graph.projects.first { $0.id == id } }
-  }
-
-  private func labelPosition(in size: CGSize) -> CGPoint {
-    CGPoint(
-      x: min(max(pointer.x + 156, 160), size.width - 160),
-      y: min(max(pointer.y - 40, 44), size.height - 44))
   }
 
 }
@@ -576,6 +552,31 @@ private struct Header: View {
         SmallButton(
           title: "Show all", symbol: "arrow.down.right.and.arrow.up.left", action: showAll)
       }
+    }
+  }
+}
+
+/// The card beside the pointer for the entry under it. Reads the renderer's
+/// hover state, so only this card redraws while the mouse moves.
+private struct HoverCard: View {
+  let state: HoverState
+  let graph: GraphSnapshot
+  let selection: BrainSelection?
+  let size: CGSize
+
+  var body: some View {
+    if let index = state.node, index < graph.nodes.count,
+      selection != .node(graph.nodes[index].id)
+    {
+      let node = graph.nodes[index]
+      HoverLabel(
+        node: node, project: node.projectID.flatMap { id in graph.projects.first { $0.id == id } }
+      )
+      .position(
+        x: min(max(state.point.x + 156, 160), size.width - 160),
+        y: min(max(state.point.y - 40, 44), size.height - 44)
+      )
+      .allowsHitTesting(false)
     }
   }
 }

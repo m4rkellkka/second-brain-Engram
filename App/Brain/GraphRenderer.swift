@@ -5,6 +5,16 @@ import Observation
 import SwiftUI
 import simd
 
+/// The entry under the pointer, for the hover card. Kept apart from the
+/// Brain view so moving the mouse only redraws that small card.
+@Observable
+@MainActor
+final class HoverState {
+  var node: Int?
+  /// Where the pointer is, in view points.
+  var point: CGPoint = .zero
+}
+
 /// The timeline under the graph: how far it has played and whether it plays.
 /// The renderer advances it every frame; the bar only reads and scrubs it.
 @Observable
@@ -101,6 +111,11 @@ final class GraphRenderer: NSObject, MTKViewDelegate {
   /// Links inside one project: the only ones that pulse and show at rest.
   private var insideLinks: [Int] = []
   let timelineState = TimelineState()
+  let hoverState = HoverState()
+  /// The latest pointer position; the hit test runs once per frame, not
+  /// once per mouse event (those come faster than frames).
+  private var pointer: CGPoint?
+  private var pointerMoved = false
 
   // MARK: Motion
 
@@ -306,7 +321,7 @@ final class GraphRenderer: NSObject, MTKViewDelegate {
     }
     let location = SIMD2(Float(point.x), Float(point.y))
     let viewSize = SIMD2(Float(size.width), Float(size.height))
-    let hubIDs = hubPositions.keys.filter { drawnHubs.contains($0) }
+    let hubIDs = Array(drawnHubs.filter { hubPositions[$0] != nil })
     let hubs = hubIDs.compactMap { hubPositions[$0] }
     // A hub is as easy to hit as it looks big, but never smaller than 16 pt.
     let hubReach =
@@ -319,11 +334,50 @@ final class GraphRenderer: NSObject, MTKViewDelegate {
       return .hub(hubIDs[hub])
     }
     // Hidden nodes can't be hovered or clicked.
-    let shown = nodePositions.indices.filter { $0 < alpha.count && alpha[$0] > 0 }
+    let alpha = alpha
     return camera.nearest(
-      to: location, among: shown.map { nodePositions[$0] }, size: viewSize, radius: 9
+      to: location, among: nodePositions, size: viewSize, radius: 9,
+      isIncluded: { $0 < alpha.count && alpha[$0] > 0 }
     )
-    .map { Hit.node(shown[$0]) }
+    .map(Hit.node)
+  }
+
+  // MARK: Hover
+
+  /// The pointer moved over the graph (nil: it left, or a drag started).
+  func movePointer(to point: CGPoint?) {
+    pointer = point
+    pointerMoved = true
+  }
+
+  /// Forgets the hover, e.g. when the graph changed under the pointer.
+  func clearHover() {
+    hoveredNode = nil
+    hoveredProject = nil
+    if hoverState.node != nil { hoverState.node = nil }
+  }
+
+  private func resolveHover() {
+    guard pointerMoved else { return }
+    pointerMoved = false
+    guard let pointer, viewSize.width > 0 else {
+      clearHover()
+      return
+    }
+    switch hit(at: pointer, size: viewSize) {
+    case .node(let index):
+      hoveredNode = index
+      hoveredProject = nil
+    case .hub(let id):
+      hoveredNode = nil
+      hoveredProject = id
+    case nil:
+      hoveredNode = nil
+      hoveredProject = nil
+    }
+    // Only the small hover card reads these, and only when they change.
+    if hoverState.node != hoveredNode { hoverState.node = hoveredNode }
+    if hoveredNode != nil, hoverState.point != pointer { hoverState.point = pointer }
   }
 
   // MARK: Filters, search and timeline
@@ -466,6 +520,7 @@ final class GraphRenderer: NSObject, MTKViewDelegate {
     }
     let size = view.drawableSize
     viewSize = view.bounds.size
+    resolveHover()
     backingScale = Float(view.window?.backingScaleFactor ?? 2)
     updateLabels()
     var uniforms = Uniforms(
