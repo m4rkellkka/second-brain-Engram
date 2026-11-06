@@ -1,6 +1,7 @@
 #!/bin/bash
-# Builds a throwaway database with 2,000 synthetic entries in 8 projects and
-# about 3,000 links, then opens the Brain graph on it. Your real data is
+# Builds a throwaway database with 2,000 synthetic entries in 8 projects,
+# about 3,000 links and a journal day every third day, spread over a year,
+# then opens the Brain graph on it. Your real data is
 # never touched. Usage: make demo-graph [COUNT=2000]
 set -euo pipefail
 
@@ -34,9 +35,19 @@ select 'e' || i, 'demo',
   case when i % 13 = 0 then null else 'p' || ((i * i + i / 7) % 8) end,
   case i % 4 when 0 then 'note' when 1 then 'task' when 2 then 'idea' else 'link' end,
   'Demo entry ' || i, null, 0,
-  strftime('%Y-%m-%d %H:%M:%f', '2026-01-01', '+' || i || ' minutes'),
-  strftime('%Y-%m-%d %H:%M:%f', '2026-01-01', '+' || i || ' minutes')
+  strftime('%Y-%m-%d %H:%M:%f', '2026-01-01', '+' || (i * 4) || ' hours'),
+  strftime('%Y-%m-%d %H:%M:%f', '2026-01-01', '+' || (i * 4) || ' hours')
 from n;
+
+-- A journal day every third day over the same stretch, for the timeline.
+with recursive d(i) as (select 0 union all select i + 3 from d where i + 3 < $COUNT / 6)
+insert into journal_days (day, time_zone, created_at, updated_at)
+select date('2026-01-01', '+' || i || ' days'), 'Europe/Istanbul',
+  strftime('%Y-%m-%d 18:00:00.000', '2026-01-01', '+' || i || ' days'),
+  strftime('%Y-%m-%d 18:00:00.000', '2026-01-01', '+' || i || ' days')
+from d;
+insert into journal_paragraphs (id, day, author, text, created_at)
+select 'j' || day, day, 'claude', 'Demo journal day ' || day, created_at from journal_days;
 
 -- About 1.5 links per entry: neighbours in the same project, plus a few
 -- links across projects.
