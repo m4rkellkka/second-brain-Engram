@@ -2,23 +2,8 @@ import AppKit
 import EngramKit
 import MetalKit
 import Observation
+import SwiftUI
 import simd
-
-/// Where the project labels go this frame; the only SwiftUI state the
-/// renderer touches, so per-frame updates redraw just the label layer.
-@Observable
-@MainActor
-final class GraphLabels {
-  struct Label: Identifiable, Equatable {
-    var id: String
-    var point: CGPoint
-    /// How far above `point` the label sits so it clears the hub's glow.
-    var lift: CGFloat
-    var opacity: Double
-  }
-
-  var items: [Label] = []
-}
 
 /// The timeline under the graph: how far it has played and whether it plays.
 /// The renderer advances it every frame; the bar only reads and scrubs it.
@@ -126,7 +111,14 @@ final class GraphRenderer: NSObject, MTKViewDelegate {
   private var clock: Double = 0
   private var lastDelta: Double = 0
   var autoRotate = true
-  let labels = GraphLabels()
+  let labelLayer = GraphLabelLayer()
+  /// Where each label is on screen, for clicks and hover.
+  private var labelFrames: [String: CGRect] = [:]
+  /// Per node, filled in `show`: its color, its group (project or Inbox)
+  /// and a glow factor that keeps big clusters from burning white.
+  private var nodeColor: [SIMD3<Float>] = []
+  private var nodeGroup: [String?] = []
+  private var linkInside: [Bool] = []
   private var viewSize: CGSize = .zero
   private var backingScale: Float = 2
 
@@ -173,6 +165,7 @@ final class GraphRenderer: NSObject, MTKViewDelegate {
     super.init()
     view.device = device
     view.delegate = self
+    view.layer?.addSublayer(labelLayer.root)
   }
 
   // MARK: Data
@@ -224,13 +217,27 @@ final class GraphRenderer: NSObject, MTKViewDelegate {
     baseSize = graph.nodes.indices.map { i in
       min(0.09 * (1 + 0.45 * Float(neighbours[i].count).squareRoot()), 0.26)
     }
+    nodeGroup = graph.nodes.map { node in
+      node.isJournal ? nil : node.projectID ?? Self.inboxID
+    }
+    nodeColor = graph.nodes.map { node in
+      node.isJournal
+        ? Self.journalColor : node.projectID.flatMap { colors[$0] } ?? Self.unfiledColor
+    }
+    linkInside = graph.links.map { isInside($0, in: graph) }
+    // Additive glow adds up: a cluster of hundreds would burn white, so
+    // each dot in a big cluster glows a little less.
+    var groupSize: [String: Int] = [:]
+    for group in nodeGroup { if let group { groupSize[group, default: 0] += 1 } }
     baseGlow = graph.nodes.indices.map { i in
-      recency[i] * (graph.nodes[i].done ? 0.45 : 1)
+      let size = Float(nodeGroup[i].flatMap { groupSize[$0] } ?? 1)
+      let density = min(max((260 / size).squareRoot(), 0.35), 1)
+      return recency[i] * (graph.nodes[i].done ? 0.45 : 1) * density
     }
     // Pulses point at links by index, which may now mean other links.
     pulses.removeAll()
     appearing.removeAll()
-    insideLinks = graph.links.indices.filter { isInside(graph.links[$0], in: graph) }
+    insideLinks = graph.links.indices.filter { linkInside[$0] }
     timeline = GraphTimeline(graph)
     filterFlags = Array(repeating: true, count: graph.nodes.count)
     timelineCount =
@@ -293,6 +300,10 @@ final class GraphRenderer: NSObject, MTKViewDelegate {
   }
 
   func hit(at point: CGPoint, size: CGSize) -> Hit? {
+    // A label is a click target for its project (or the Inbox).
+    if let label = labelFrames.first(where: { $0.value.contains(point) }) {
+      return .hub(label.key)
+    }
     let location = SIMD2(Float(point.x), Float(point.y))
     let viewSize = SIMD2(Float(size.width), Float(size.height))
     let hubIDs = hubPositions.keys.filter { drawnHubs.contains($0) }
@@ -335,9 +346,7 @@ final class GraphRenderer: NSObject, MTKViewDelegate {
 
   /// The project (or the Inbox) a node belongs to; nil for journal days.
   func group(of index: Int) -> String? {
-    let node = snapshot.nodes[index]
-    if node.isJournal { return nil }
-    return node.projectID ?? Self.inboxID
+    index < nodeGroup.count ? nodeGroup[index] : nil
   }
 
   /// Shown neighbours of a node, strongest link first.
@@ -464,8 +473,9 @@ final class GraphRenderer: NSObject, MTKViewDelegate {
       viewport: [Float(size.width), Float(size.height), Float(clock), 5 * backingScale],
       fog: fogRange())
 
-    let lines = makeLines()
-    let sprites = makeSprites()
+    let weights = emphasis()
+    let lines = makeLines(weights)
+    let sprites = makeSprites(weights)
     if let buffer = lineBuffers.next(holding: lines, device: device) {
       encoder.setRenderPipelineState(linePipeline)
       encoder.setVertexBuffer(buffer, offset: 0, index: 0)
@@ -560,8 +570,7 @@ final class GraphRenderer: NSObject, MTKViewDelegate {
     return focusedProject == nil || focusedProject == projectID ? 1 : 0.25
   }
 
-  private func makeSprites() -> [Sprite] {
-    let weights = emphasis()
+  private func makeSprites(_ weights: [Float]) -> [Sprite] {
     var sprites = stars
     sprites.reserveCapacity(
       stars.count + snapshot.nodes.count + 2 * hubPositions.count + pulses.count)
@@ -576,9 +585,7 @@ final class GraphRenderer: NSObject, MTKViewDelegate {
           shape: .nebula))
     }
     for (i, node) in snapshot.nodes.enumerated() where alpha[i] > 0 {
-      let color =
-        node.isJournal
-        ? Self.journalColor : node.projectID.flatMap { colors[$0] } ?? Self.unfiledColor
+      let color = nodeColor[i]
       let shape: GraphShaders.Shape = node.isJournal ? .star : node.kind == .task ? .ring : .dot
       var glow = baseGlow[i] * weights[i] * alpha[i]
       var size =
@@ -633,9 +640,8 @@ final class GraphRenderer: NSObject, MTKViewDelegate {
     return sprites
   }
 
-  private func makeLines() -> [Line] {
+  private func makeLines(_ weights: [Float]) -> [Line] {
     let scale = backingScale
-    let weights = emphasis()
     let active = hoveredNode ?? selectedNode
     let lit = Set(active.map { nodeLinks[$0] } ?? [])
     var lines: [Line] = []
@@ -643,7 +649,7 @@ final class GraphRenderer: NSObject, MTKViewDelegate {
     // Spokes from each entry to its project's hub, faint.
     for (i, node) in snapshot.nodes.enumerated() where alpha[i] > 0 {
       guard let projectID = node.projectID, let hub = hubPositions[projectID] else { continue }
-      let color = colors[projectID] ?? Self.unfiledColor
+      let color = nodeColor[i]
       lines.append(
         Line(
           a: SIMD4(hub, 1 * scale), b: SIMD4(nodePositions[i], 0),
@@ -653,9 +659,8 @@ final class GraphRenderer: NSObject, MTKViewDelegate {
     for (i, link) in snapshot.links.enumerated() {
       let shown = min(alpha[link.source], alpha[link.target])
       guard shown > 0 else { continue }
-      let from = snapshot.nodes[link.source], to = snapshot.nodes[link.target]
       // A journal day's links go across projects, like cross-project links.
-      let inside = from.projectID == to.projectID && !from.isJournal && !to.isJournal
+      let inside = linkInside[i]
       // Links across projects (and a journal day's) show only for the
       // hovered or selected node, or the focused project.
       if !inside, !lit.contains(i),
@@ -664,8 +669,7 @@ final class GraphRenderer: NSObject, MTKViewDelegate {
       {
         continue
       }
-      let color =
-        inside ? (from.projectID.flatMap { colors[$0] } ?? Self.unfiledColor) : SIMD3(1, 1, 1)
+      let color = inside ? nodeColor[link.source] : SIMD3<Float>(1, 1, 1)
       let weight = min(weights[link.source], weights[link.target])
       var alpha = (inside ? 0.22 : 0.1) * Float(0.6 + 0.4 * link.weight) * min(weight, 1) * shown
       if lit.contains(i) { alpha = 0.75 * shown }
@@ -680,46 +684,55 @@ final class GraphRenderer: NSObject, MTKViewDelegate {
 
   private func updateLabels() {
     let size = SIMD2(Float(viewSize.width), Float(viewSize.height))
-    let names = Dictionary(
-      snapshot.projects.map { ($0.id, $0.name) }, uniquingKeysWith: { first, _ in first })
+    let projects = Dictionary(
+      snapshot.projects.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
     var anchors: [(id: String, position: SIMD3<Float>, radius: Float)] =
       hubPositions
       .filter { drawnHubs.contains($0.key) }
       .map { ($0.key, $0.value, Self.hubRadius) }
     if let inboxCenter { anchors.append((Self.inboxID, inboxCenter, 0.3)) }
 
-    var items: [GraphLabels.Label] = []
+    var items: [String: GraphLabelLayer.Item] = [:]
     var candidates: [LabelPlacer.Candidate] = []
     for anchor in anchors {
       guard let (point, depth) = camera.project(anchor.position, size: size) else { continue }
       // Sit above the hub's glow (about three core radii), whatever its size.
       let core = min(camera.screenRadius(of: anchor.radius, atDepth: depth, height: size.y), 16)
       let dim = focusedProject == nil || focusedProject == anchor.id
+      let lit = hoveredProject == anchor.id
       // Far labels fade with the fog, but stay readable.
-      let opacity = max(Double(fog(depth)), 0.55) * (dim ? 1 : 0.35)
-      let lift = CGFloat((core * 3 + 14).rounded())
-      let center = CGPoint(x: CGFloat(point.x.rounded()), y: CGFloat(point.y.rounded()))
-      // About the width the capsule takes: dot, padding and the name.
-      let name = anchor.id == Self.inboxID ? "Inbox" : names[anchor.id] ?? ""
-      let width = CGFloat(30 + 7 * name.count)
-      candidates.append(
-        .init(
-          id: anchor.id,
-          rect: CGRect(x: center.x - width / 2, y: center.y - lift - 11, width: width, height: 22),
-          depth: depth))
-      items.append(
-        .init(id: anchor.id, point: center, lift: lift, opacity: (opacity * 50).rounded() / 50))
+      let opacity = lit ? 1 : max(fog(depth), 0.55) * (dim ? 1 : 0.35)
+      let isInbox = anchor.id == Self.inboxID
+      let name = isInbox ? "Inbox" : projects[anchor.id]?.name ?? ""
+      let width = labelLayer.width(of: name)
+      let height = GraphLabelLayer.height
+      let frame = CGRect(
+        x: (CGFloat(point.x) - width / 2).rounded(),
+        y: (CGFloat(point.y) - CGFloat(core * 3 + 14) - height / 2).rounded(),
+        width: width, height: height)
+      candidates.append(.init(id: anchor.id, rect: frame, depth: depth))
+      let dot =
+        isInbox
+        ? NSColor(Theme.textSubtle).cgColor
+        : NSColor(Color(hexString: projects[anchor.id]?.color ?? "")).cgColor
+      items[anchor.id] = .init(
+        id: anchor.id, name: name, dot: dot, muted: isInbox, frame: frame,
+        opacity: (opacity * 50).rounded() / 50)
     }
     // Nearer labels win; covered ones step aside or hide.
     let shifts = LabelPlacer.place(candidates)
-    items = items.compactMap { item in
-      guard let shift = shifts[item.id] else { return nil }
-      var item = item
-      item.lift -= shift
-      return item
+    var placed: [GraphLabelLayer.Item] = []
+    var frames: [String: CGRect] = [:]
+    for (id, shift) in shifts {
+      guard var item = items[id] else { continue }
+      item.frame = item.frame.offsetBy(dx: 0, dy: shift)
+      frames[id] = item.frame
+      placed.append(item)
     }
-    items.sort { $0.id < $1.id }
-    if items != labels.items { labels.items = items }
+    placed.sort { $0.id < $1.id }
+    labelFrames = frames
+    labelLayer.update(
+      placed, bounds: CGRect(origin: .zero, size: viewSize), scale: CGFloat(backingScale))
   }
 
   // MARK: Helpers

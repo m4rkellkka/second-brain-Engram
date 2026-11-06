@@ -33,28 +33,21 @@ struct BrainView: View {
             )
           } else {
             canvas(size: geometry.size)
-            if let labels = holder.renderer?.labels {
-              HubLabels(
-                labels: labels, graph: graph,
-                select: { id in
-                  setSelection(id == GraphRenderer.inboxID ? .inbox : .project(id))
-                },
-                hover: { holder.renderer?.hoveredProject = $0 })
-            }
             // Glass header: labels drifting under it blur instead of
             // showing through.
-            Header(graph: graph, focused: selection != nil) {
-              setSelection(nil)
+            // Header on the left, search and filter on the right; the
+            // search field narrows before the two would touch.
+            HStack(alignment: .top, spacing: 12) {
+              Header(graph: graph, focused: selection != nil) {
+                setSelection(nil)
+              }
+              Spacer(minLength: 0)
+              ViewThatFits(in: .horizontal) {
+                controls(fieldWidth: 150)
+                controls(fieldWidth: 90)
+              }
             }
             .padding(20)
-            HStack(spacing: 8) {
-              GraphSearchField(
-                text: $searchText, matchCount: matches?.count, focused: $searchFocused,
-                next: nextMatch, close: closeSearch)
-              FilterButton(filter: $filter, projects: graph.projects)
-            }
-            .padding(20)
-            .frame(maxWidth: .infinity, alignment: .topTrailing)
             VStack(alignment: .leading, spacing: 10) {
               ProjectLegend(projects: graph.projects, focused: focusedProject) { id in
                 setSelection(id == focusedProject ? nil : .project(id))
@@ -198,7 +191,7 @@ struct BrainView: View {
     )
     .onTapGesture { location in
       switch holder.renderer?.hit(at: location, size: size) {
-      case .hub(let projectID): setSelection(.project(projectID))
+      case .hub(let id): setSelection(id == GraphRenderer.inboxID ? .inbox : .project(id))
       case .node(let index): setSelection(.node(graph.nodes[index].id))
       case nil: setSelection(nil)
       }
@@ -220,6 +213,16 @@ struct BrainView: View {
         hover(nil)
       }
     }
+  }
+
+  private func controls(fieldWidth: CGFloat) -> some View {
+    HStack(spacing: 8) {
+      GraphSearchField(
+        text: $searchText, matchCount: matches?.count, focused: $searchFocused,
+        width: fieldWidth, next: nextMatch, close: closeSearch)
+      FilterButton(filter: $filter, projects: graph.projects)
+    }
+    .fixedSize()
   }
 
   private func hover(_ index: Int?) {
@@ -530,52 +533,6 @@ final class GraphMTKView: MTKView {
 
   @objc private func occlusionChanged() {
     isPaused = !(window?.occlusionState.contains(.visible) ?? false)
-  }
-}
-
-/// Project names above their hubs; the renderer moves them every frame.
-/// Clicking a name focuses the project, hovering lights it up.
-private struct HubLabels: View {
-  let labels: GraphLabels
-  let graph: GraphSnapshot
-  let select: (String) -> Void
-  let hover: (String?) -> Void
-
-  var body: some View {
-    let names = Dictionary(
-      graph.projects.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
-    ZStack(alignment: .topLeading) {
-      ForEach(labels.items) { label in
-        let isInbox = label.id == GraphRenderer.inboxID
-        if let project = names[label.id].map({ (name: $0.name, color: $0.color) })
-          ?? (isInbox ? (name: "Inbox", color: "#8790AA") : nil)
-        {
-          Button {
-            select(label.id)
-          } label: {
-            HStack(spacing: 6) {
-              Circle().fill(isInbox ? Theme.textSubtle : Color(hexString: project.color))
-                .frame(width: 6, height: 6)
-              Text(project.name).font(.geist(12, .medium))
-                .foregroundStyle(isInbox ? Theme.textMuted : Theme.text)
-            }
-            .padding(.horizontal, 8)
-            .frame(height: 22)
-            .background(Capsule().fill(Theme.background.opacity(0.6)))
-            .overlay(Capsule().stroke(Theme.border))
-            .contentShape(Capsule())
-          }
-          .buttonStyle(.plain)
-          .focusEffectDisabled()
-          .onHover { inside in hover(inside ? label.id : nil) }
-          .accessibilityLabel("Focus \(project.name)")
-          .opacity(label.opacity)
-          .fixedSize()
-          .position(x: label.point.x, y: label.point.y - label.lift)
-        }
-      }
-    }
-    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
   }
 }
 
