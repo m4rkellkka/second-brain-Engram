@@ -15,25 +15,56 @@ struct CaptureBox: View {
 
   private var isEmpty: Bool { text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
 
+  /// One line with Save beside it, for the top of the Inbox.
+  var compact = false
+
   var body: some View {
-    VStack(alignment: .leading, spacing: 10) {
-      ZStack(alignment: .topLeading) {
-        if text.isEmpty {
-          Text("What's on your mind?")
-            .font(.geist(15))
-            .foregroundStyle(Theme.textSubtle)
-            .padding(.top, 2)
-            .allowsHitTesting(false)
+    if compact {
+      HStack(spacing: 10) {
+        editor(placeholder: justSaved ? "Saved to Inbox ✓" : "Jot a thought…  ⌘N")
+          .frame(height: 22)
+        if let error {
+          Text(error).font(.geist(12)).foregroundStyle(Theme.danger).lineLimit(1)
         }
-        ThoughtEditor(
-          text: $text,
-          focusToken: model.captureFocusToken,
-          focusWhenWindowActivates: focusWhenWindowActivates,
-          onSubmit: save
-        )
-        .accessibilityLabel("New thought")
+        Button("Save", action: save)
+          .buttonStyle(AccentButtonStyle(height: 30))
+          .disabled(isEmpty)
       }
-      .frame(height: editorHeight)
+      .padding(.leading, 16)
+      .padding(.trailing, 8)
+      .padding(.vertical, 8)
+      .glassPanel(radius: 14)
+      .onChange(of: text) {
+        if !text.isEmpty { error = nil }
+      }
+    } else {
+      full
+    }
+  }
+
+  private func editor(placeholder: String) -> some View {
+    ZStack(alignment: .topLeading) {
+      if text.isEmpty {
+        Text(placeholder)
+          .font(.geist(compact ? 14 : 15))
+          .foregroundStyle(Theme.textSubtle)
+          .padding(.top, compact ? 1 : 2)
+          .allowsHitTesting(false)
+      }
+      ThoughtEditor(
+        text: $text,
+        focusToken: model.captureFocusToken,
+        focusWhenWindowActivates: focusWhenWindowActivates,
+        onSubmit: save
+      )
+      .accessibilityLabel("New thought")
+    }
+  }
+
+  private var full: some View {
+    VStack(alignment: .leading, spacing: 10) {
+      editor(placeholder: "What's on your mind?")
+        .frame(height: editorHeight)
 
       HStack(spacing: 10) {
         if let error {

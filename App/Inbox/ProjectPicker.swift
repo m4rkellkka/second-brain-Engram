@@ -51,7 +51,7 @@ struct ProjectPicker: View {
         }
         .padding(.horizontal, 10)
         .frame(height: 28)
-        .background(Capsule().fill(Theme.surface2))
+        .overlay(Capsule().strokeBorder(Theme.borderStrong.opacity(0.7)))
         .contentShape(Capsule())
       }
       .menuStyle(.button)
@@ -94,8 +94,10 @@ struct NewProjectForm: View {
         .font(.geist(14))
         .padding(.horizontal, 10)
         .frame(height: 32)
-        .background(RoundedRectangle(cornerRadius: Theme.controlRadius).fill(Theme.surface2))
-        .overlay(RoundedRectangle(cornerRadius: Theme.controlRadius).stroke(Theme.borderStrong))
+        .background(RoundedRectangle(cornerRadius: Theme.controlRadius).fill(Theme.surface))
+        .overlay(
+          RoundedRectangle(cornerRadius: Theme.controlRadius).strokeBorder(Theme.borderStrong)
+        )
         .focused($focused)
         .onSubmit(submit)
       if let error {

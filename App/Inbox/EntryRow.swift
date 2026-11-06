@@ -1,6 +1,8 @@
 import EngramKit
 import SwiftUI
 
+/// One Inbox line: kind, text, project and when it came in. Kind and
+/// project are menus, so a wrong guess from Claude is one click to fix.
 struct EntryRow: View {
   @Environment(AppModel.self) private var model
   let item: InboxItem
@@ -10,105 +12,59 @@ struct EntryRow: View {
   private var entry: Entry { item.entry }
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 10) {
-      HStack(spacing: 8) {
-        KindMenu(kind: entry.kind) { error = model.setKind($0, forEntry: entry.id) }
-        SourceLabel(capture: item.capture)
-        Spacer()
-        Text(entry.createdAt, format: .relative(presentation: .named))
-          .font(.geistMono(11))
-          .foregroundStyle(Theme.textSubtle)
-      }
+    HStack(alignment: .top, spacing: 12) {
+      KindMenu(kind: entry.kind) { error = model.setKind($0, forEntry: entry.id) }
+        .frame(width: 60, alignment: .leading)
 
-      HStack(alignment: .firstTextBaseline, spacing: 6) {
-        if entry.kind == .task { TaskCheckbox(item: item) }
-        Text(entry.content)
-          .font(.geist(14.5))
-          .foregroundStyle(entry.doneAt == nil ? Theme.text : Theme.textSubtle)
-          .strikethrough(entry.doneAt != nil, color: Theme.textSubtle)
-          .lineSpacing(3)
-          .textSelection(.enabled)
-          .frame(maxWidth: .infinity, alignment: .leading)
-      }
-
-      if entry.dueAt != nil || entry.url != nil {
-        HStack(spacing: 8) {
-          if let due = entry.dueAt {
-            Chip(symbol: "calendar", text: due.formatted(date: .abbreviated, time: .omitted))
-          }
-          if let raw = entry.url, let url = URL(string: raw) {
-            Link(destination: url) {
-              Chip(symbol: "link", text: url.host() ?? raw)
-            }
-            .buttonStyle(.plain)
-          }
+      VStack(alignment: .leading, spacing: 6) {
+        HStack(alignment: .top, spacing: 4) {
+          if entry.kind == .task { TaskCheckbox(item: item).padding(.top, -4) }
+          Text(entry.content)
+            .font(.geist(14))
+            .foregroundStyle(entry.doneAt == nil ? Theme.text : Theme.textSubtle)
+            .strikethrough(entry.doneAt != nil, color: Theme.textSubtle)
+            .lineSpacing(3)
+            .textSelection(.enabled)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.top, 4)
         }
-      }
-
-      if entry.needsReview {
-        NotSureBar(entry: entry) { error = $0 }
-      }
-
-      HStack(spacing: 8) {
-        ProjectPicker(entryID: entry.id, current: item.project, projects: projects)
-        if let project = item.project {
-          Button {
-            model.openProject(project.id)
-          } label: {
-            Image(systemName: "arrow.up.right")
-              .font(.system(size: 10, weight: .semibold))
-              .foregroundStyle(Theme.textSubtle)
-              .frame(width: 28, height: 28)
-              .contentShape(Rectangle())
+        if entry.dueAt != nil || entry.url != nil {
+          HStack(spacing: 8) {
+            if let due = entry.dueAt {
+              Chip(symbol: "calendar", text: due.formatted(date: .abbreviated, time: .omitted))
+            }
+            if let raw = entry.url, let url = URL(string: raw) {
+              Link(destination: url) {
+                Chip(symbol: "link", text: url.host() ?? raw)
+              }
+              .buttonStyle(.plain)
+            }
           }
-          .buttonStyle(.plain)
-          .help("Open \(project.name)")
-          .accessibilityLabel("Open project \(project.name)")
         }
         if let error {
           Text(error).font(.geist(12)).foregroundStyle(Theme.danger)
         }
       }
+
+      ProjectPicker(entryID: entry.id, current: item.project, projects: projects)
+
+      HStack(spacing: 4) {
+        SourceLabel(capture: item.capture)
+        Text(entry.createdAt, format: .dateTime.hour().minute())
+          .font(.geistMono(11))
+          .foregroundStyle(Theme.textSubtle)
+      }
+      .frame(width: 64, alignment: .trailing)
+      .frame(minHeight: 28)
     }
-    .padding(16)
-    .background(RoundedRectangle(cornerRadius: Theme.cardRadius).fill(Theme.surface))
-    .overlay(
-      RoundedRectangle(cornerRadius: Theme.cardRadius)
-        .stroke(entry.needsReview ? Theme.kindColor("task").opacity(0.45) : Theme.border))
+    .padding(.vertical, 10)
+    .padding(.horizontal, 4)
+    .overlay(alignment: .bottom) { Rectangle().fill(Theme.border).frame(height: 1) }
   }
 }
 
-/// "Not sure" actions: accept as is, or create the project Claude proposed.
-private struct NotSureBar: View {
-  @Environment(AppModel.self) private var model
-  let entry: Entry
-  let report: (String?) -> Void
-
-  var body: some View {
-    HStack(spacing: 8) {
-      Label("Not sure", systemImage: "questionmark.circle")
-        .font(.geist(12, .medium))
-        .foregroundStyle(Theme.kindColor("task"))
-      Spacer()
-      if let suggestion = entry.suggestedProject {
-        SmallButton(title: "Create “\(suggestion)”", symbol: "plus") {
-          report(model.createSuggestedProject(forEntry: entry.id))
-        }
-      }
-      SmallButton(title: "Looks right", symbol: "checkmark") {
-        report(model.confirm(entry.id))
-      }
-    }
-    .padding(.horizontal, 12)
-    .frame(minHeight: 36)
-    .background(
-      RoundedRectangle(cornerRadius: Theme.controlRadius).fill(
-        Theme.kindColor("task").opacity(0.08)))
-  }
-}
-
-/// The kind badge, clickable to fix the kind.
-private struct KindMenu: View {
+/// The kind in its color, clickable to fix it.
+struct KindMenu: View {
   let kind: EntryKind
   let change: (EntryKind) -> Void
 
@@ -126,16 +82,22 @@ private struct KindMenu: View {
         }
       }
     } label: {
-      KindBadge(kind: kind)
+      Text(kind.rawValue)
+        .font(.geistMono(11, .medium))
+        .foregroundStyle(Theme.kindColor(kind.rawValue))
+        .frame(minHeight: 28)
+        .contentShape(Rectangle())
     }
     .menuStyle(.button)
     .buttonStyle(.plain)
     .menuIndicator(.hidden)
     .fixedSize()
+    .help("Change the kind")
     .accessibilityLabel("Kind: \(kind.rawValue)")
   }
 }
 
+/// ✦ for what Claude saved; "unsorted" for typed thoughts Claude hasn't seen.
 private struct SourceLabel: View {
   let capture: Capture?
 
@@ -143,12 +105,16 @@ private struct SourceLabel: View {
     if let capture {
       switch (capture.source, capture.status) {
       case (.claude, _):
-        Label("Claude", systemImage: "sparkle")
-          .font(.geist(11.5))
+        Text("✦")
+          .font(.geist(11))
           .foregroundStyle(Theme.textSubtle)
-          .help(capture.conversationRef ?? "Saved from a Claude conversation")
+          .help(capture.conversationRef.map { "From Claude: \($0)" } ?? "Saved by Claude")
+          .accessibilityLabel("Saved by Claude")
       case (.typed, .unsorted):
-        Text("unsorted").font(.geistMono(11)).foregroundStyle(Theme.textSubtle)
+        Text("unsorted")
+          .font(.geistMono(10.5))
+          .foregroundStyle(Theme.textSubtle)
+          .help("Ask Claude to “sort my Engram inbox”")
       case (.typed, .sorted):
         EmptyView()
       }
@@ -165,7 +131,7 @@ private struct Chip: View {
       .font(.geist(12))
       .foregroundStyle(Theme.textMuted)
       .padding(.horizontal, 10)
-      .frame(height: 26)
-      .background(Capsule().fill(Theme.surface2))
+      .frame(height: 24)
+      .overlay(Capsule().strokeBorder(Theme.borderStrong.opacity(0.7)))
   }
 }
