@@ -6,6 +6,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-11-06
+
+The first stable release of Engram as a native Mac app. It brings together everything from
+0.6 to 0.13:
+
+- Save from any Claude Desktop chat through Engram's local connector; Claude sorts what you
+  said into tasks, ideas, notes and links and files them into your projects.
+- Today at a glance, an Inbox for what needs you, and capture from the menu bar or ⌘N.
+- Project pages that keep themselves current (summary, status, stack, decisions, ideas),
+  where what you write always wins.
+- A journal, written with Claude or by hand, next to what you saved and finished each day.
+- A 3D graph you can filter, search, walk with the keyboard and watch grow.
+- ⌘K search over entries and journal days, in Russian and English.
+- Export to Markdown, ready to open as an Obsidian vault.
+
+No changes since 0.13.0 besides the version: it is the same build, now called stable.
+
 ## [0.13.0] - 2026-11-06
 
 The first public release.
@@ -285,7 +302,8 @@ Engram is now a native macOS app. The Next.js + Supabase web app (0.1.0–0.5.0)
 - GitHub Actions CI: lint, format check, typecheck and build.
 - MIT license.
 
-[Unreleased]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.13.0...HEAD
+[Unreleased]: https://github.com/m4rkellkka/second-brain-Engram/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.13.0...v1.0.0
 [0.13.0]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.12.2...v0.13.0
 [0.12.2]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.12.1...v0.12.2
 [0.12.1]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.12.0...v0.12.1
