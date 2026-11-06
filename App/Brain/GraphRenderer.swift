@@ -20,6 +20,19 @@ final class GraphLabels {
   var items: [Label] = []
 }
 
+/// The timeline under the graph: how far it has played and whether it plays.
+/// The renderer advances it every frame; the bar only reads and scrubs it.
+@Observable
+@MainActor
+final class TimelineState {
+  /// 0 = nothing yet, 1 = everything (the normal view).
+  var progress: Double = 1
+  var playing = false
+  var speed: Double = 1
+  /// When the newest visible node was saved, for the label under the bar.
+  var date: Date?
+}
+
 /// Draws the Brain graph with Metal and owns everything that moves: the
 /// orbit camera, hover and focus highlights, flashes for new entries, the
 /// small pulses that run along links, and the glide of dots to their new
@@ -80,8 +93,29 @@ final class GraphRenderer: NSObject, MTKViewDelegate {
   private var colors: [String: SIMD3<Float>] = [:]
   private var stars: [Sprite] = []
   private var flashes: [String: Double] = [:]
+  /// Nodes the timeline just showed: a short, soft flash, since hundreds
+  /// appear per second at 16× and full flashes would white out clusters.
+  private var appearing: [Int: Double] = [:]
   private var pulses: [Pulse] = []
   private var nextPulse: Double = 0
+
+  // MARK: What is drawn (filters, search, timeline); never moves anything
+
+  /// The focus id for the cloud of unfiled entries.
+  static let inboxID = "inbox"
+  private var filterFlags: [Bool] = []
+  private var matches: Set<String>?
+  private(set) var timeline = GraphTimeline(.empty)
+  private var timelineCount: Int?
+  /// Per node: 0 hidden, dim for a search miss, 1 shown.
+  private var alpha: [Float] = []
+  private var drawnHubs: Set<String> = []
+  /// Centre and reach of the Inbox nebula, if any unfiled entry is shown.
+  private(set) var inboxCenter: SIMD3<Float>?
+  private var inboxReach: Float = 1
+  /// Links inside one project: the only ones that pulse and show at rest.
+  private var insideLinks: [Int] = []
+  let timelineState = TimelineState()
 
   // MARK: Motion
 
@@ -90,6 +124,7 @@ final class GraphRenderer: NSObject, MTKViewDelegate {
   private var lastInteraction = Date.distantPast
   private var lastFrame: CFTimeInterval = CACurrentMediaTime()
   private var clock: Double = 0
+  private var lastDelta: Double = 0
   var autoRotate = true
   let labels = GraphLabels()
   private var viewSize: CGSize = .zero
@@ -122,8 +157,12 @@ final class GraphRenderer: NSObject, MTKViewDelegate {
         attachment?.alphaBlendOperation = .add
         attachment?.sourceRGBBlendFactor = .one
         attachment?.destinationRGBBlendFactor = .one
-        attachment?.sourceAlphaBlendFactor = .one
-        attachment?.destinationAlphaBlendFactor = .oneMinusSourceAlpha
+        // Colors add up (glow), but the frame's alpha stays 1. Otherwise
+        // bright pixels end up with more color than alpha, and wherever the
+        // window composites a label over the graph they showed as light
+        // rectangles.
+        attachment?.sourceAlphaBlendFactor = .zero
+        attachment?.destinationAlphaBlendFactor = .one
         return try device.makeRenderPipelineState(descriptor: descriptor)
       }
       spritePipeline = try pipeline("spriteVertex", "spriteFragment")
@@ -190,12 +229,21 @@ final class GraphRenderer: NSObject, MTKViewDelegate {
     }
     // Pulses point at links by index, which may now mean other links.
     pulses.removeAll()
+    appearing.removeAll()
+    insideLinks = graph.links.indices.filter { isInside(graph.links[$0], in: graph) }
+    timeline = GraphTimeline(graph)
+    filterFlags = Array(repeating: true, count: graph.nodes.count)
+    timelineCount =
+      timelineState.progress >= 1 ? nil : timeline.visibleCount(at: timelineState.progress)
+    refreshVisibility()
 
     if !isFirst {
       for node in graph.nodes where previous[node.id] == nil { flashes[node.id] = clock }
     }
     if stars.isEmpty { stars = Self.makeStars() }
-    if let focusedProject, layout.hubs[focusedProject] == nil {
+    if let focusedProject, layout.hubs[focusedProject] == nil,
+      !(focusedProject == Self.inboxID && inboxCenter != nil)
+    {
       focus(nil)
     } else {
       // Re-aim at the (possibly moved) hub, or refit the whole graph.
@@ -225,7 +273,10 @@ final class GraphRenderer: NSObject, MTKViewDelegate {
   /// Flies to a project's cluster (or back to the whole graph with nil).
   func focus(_ projectID: String?) {
     focusedProject = projectID
-    if let projectID, let hub = layout.hubs[projectID] {
+    if projectID == Self.inboxID, let inboxCenter {
+      desiredTarget = inboxCenter
+      desiredDistance = fitDistance(inboxReach + 1.5)
+    } else if let projectID, let hub = layout.hubs[projectID] {
       let members = snapshot.nodes.indices.filter { snapshot.nodes[$0].projectID == projectID }
       let reach = members.map { simd_distance(layout.nodePositions[$0], hub) }.max() ?? 2
       desiredTarget = hub
@@ -244,7 +295,7 @@ final class GraphRenderer: NSObject, MTKViewDelegate {
   func hit(at point: CGPoint, size: CGSize) -> Hit? {
     let location = SIMD2(Float(point.x), Float(point.y))
     let viewSize = SIMD2(Float(size.width), Float(size.height))
-    let hubIDs = Array(hubPositions.keys)
+    let hubIDs = hubPositions.keys.filter { drawnHubs.contains($0) }
     let hubs = hubIDs.compactMap { hubPositions[$0] }
     // A hub is as easy to hit as it looks big, but never smaller than 16 pt.
     let hubReach =
@@ -256,8 +307,129 @@ final class GraphRenderer: NSObject, MTKViewDelegate {
     {
       return .hub(hubIDs[hub])
     }
-    return camera.nearest(to: location, among: nodePositions, size: viewSize, radius: 9)
-      .map(Hit.node)
+    // Hidden nodes can't be hovered or clicked.
+    let shown = nodePositions.indices.filter { $0 < alpha.count && alpha[$0] > 0 }
+    return camera.nearest(
+      to: location, among: shown.map { nodePositions[$0] }, size: viewSize, radius: 9
+    )
+    .map { Hit.node(shown[$0]) }
+  }
+
+  // MARK: Filters, search and timeline
+
+  /// Which nodes the filter keeps, one flag per node of the current graph.
+  func setFilter(_ flags: [Bool]) {
+    guard flags.count == snapshot.nodes.count, flags != filterFlags else { return }
+    filterFlags = flags
+    refreshVisibility()
+  }
+
+  /// Node ids that match the ⌘F search; nil shows everything at full light.
+  func setSearch(_ ids: Set<String>?) {
+    guard ids != matches else { return }
+    matches = ids
+    refreshVisibility()
+  }
+
+  func isDrawn(_ index: Int) -> Bool { index < alpha.count && alpha[index] > 0 }
+
+  /// The project (or the Inbox) a node belongs to; nil for journal days.
+  func group(of index: Int) -> String? {
+    let node = snapshot.nodes[index]
+    if node.isJournal { return nil }
+    return node.projectID ?? Self.inboxID
+  }
+
+  /// Shown neighbours of a node, strongest link first.
+  func drawnNeighbours(of index: Int) -> [Int] {
+    guard index < nodeLinks.count else { return [] }
+    return nodeLinks[index]
+      .map { snapshot.links[$0] }
+      .sorted { $0.weight > $1.weight }
+      .map { $0.source == index ? $0.target : $0.source }
+      .filter(isDrawn)
+  }
+
+  /// The most linked shown node, in `group` if given: where a keyboard walk starts.
+  func walkStart(in group: String?) -> Int? {
+    snapshot.nodes.indices
+      .filter { isDrawn($0) && (group == nil || self.group(of: $0) == group) }
+      .max { (neighbours[$0].count, -$0) < (neighbours[$1].count, -$1) }
+  }
+
+  /// Flies close to one node.
+  func aim(at index: Int) {
+    guard index < nodePositions.count else { return }
+    lastInteraction = Date()
+    desiredTarget = layout.nodePositions[index]
+    desiredDistance = fitDistance(3.5)
+  }
+
+  private func isInside(_ link: GraphSnapshot.Link, in graph: GraphSnapshot) -> Bool {
+    let a = graph.nodes[link.source], b = graph.nodes[link.target]
+    return a.projectID == b.projectID && !a.isJournal && !b.isJournal
+  }
+
+  /// Applies the timeline position: nodes that appear flash and fly out
+  /// of their hub, as when they were saved.
+  private func applyTimeline() {
+    let state = timelineState
+    if state.playing {
+      state.progress = min(
+        state.progress + GraphTimeline.advance(lastDelta, speed: state.speed), 1)
+      if state.progress >= 1 { state.playing = false }
+    }
+    let count = state.progress >= 1 ? nil : timeline.visibleCount(at: state.progress)
+    guard count != timelineCount else { return }
+    let before = timelineCount ?? timeline.count
+    let after = count ?? timeline.count
+    timelineCount = count
+    // A few at a time glow and fly out of their hub; a big jump (a drag
+    // along the bar) just appears.
+    if after > before, after - before <= 40 {
+      for rank in before..<after {
+        let index = timeline.order[rank]
+        let node = snapshot.nodes[index]
+        appearing[index] = clock
+        if let hub = node.projectID.flatMap({ hubPositions[$0] }) {
+          nodePositions[index] = hub
+          settling = true
+        }
+      }
+    }
+    refreshVisibility()
+    let date = timeline.date(atCount: after)
+    if state.date != date { state.date = date }
+  }
+
+  private func refreshVisibility() {
+    let count = snapshot.nodes.count
+    var values = [Float](repeating: 0, count: count)
+    var hubs: Set<String> = []
+    var inboxSum = SIMD3<Float>.zero
+    var inboxMembers: [Int] = []
+    for i in 0..<count {
+      guard i < filterFlags.count ? filterFlags[i] : true else { continue }
+      if let timelineCount, timeline.rank[i] >= timelineCount { continue }
+      let node = snapshot.nodes[i]
+      values[i] = matches.map { $0.contains(node.id) ? 1 : 0.08 } ?? 1
+      if let project = node.projectID {
+        hubs.insert(project)
+      } else if !node.isJournal {
+        inboxSum += layout.nodePositions[i]
+        inboxMembers.append(i)
+      }
+    }
+    alpha = values
+    drawnHubs = hubs
+    if inboxMembers.isEmpty {
+      inboxCenter = nil
+    } else {
+      let center = inboxSum / Float(inboxMembers.count)
+      inboxCenter = center
+      inboxReach = max(
+        inboxMembers.map { simd_distance(layout.nodePositions[$0], center) }.max() ?? 1, 1)
+    }
   }
 
   // MARK: Frame
@@ -269,6 +441,7 @@ final class GraphRenderer: NSObject, MTKViewDelegate {
     let delta = min(now - lastFrame, 0.1)
     lastFrame = now
     clock += delta
+    lastDelta = delta
     if delta > 0 { framesPerSecond = framesPerSecond * 0.92 + (1 / delta) * 0.08 }
     step(delta)
 
@@ -315,6 +488,7 @@ final class GraphRenderer: NSObject, MTKViewDelegate {
   }
 
   private func step(_ delta: Double) {
+    applyTimeline()
     let dt = Float(delta)
     if autoRotate, Date().timeIntervalSince(lastInteraction) > 3 { camera.yaw += dt * 0.06 }
     let ease = 1 - exp(-dt * 4)
@@ -344,15 +518,18 @@ final class GraphRenderer: NSObject, MTKViewDelegate {
 
     // Pulses: a few at a time, each runs along one link in about a second.
     pulses.removeAll { clock - $0.start > $0.duration }
-    if !snapshot.links.isEmpty, clock >= nextPulse, pulses.count < 28 {
+    if let link = insideLinks.randomElement(), clock >= nextPulse, pulses.count < 28,
+      alpha[snapshot.links[link].source] >= 1, alpha[snapshot.links[link].target] >= 1
+    {
       var rng = SystemRandomNumberGenerator()
       pulses.append(
         Pulse(
-          link: Int.random(in: 0..<snapshot.links.count, using: &rng), start: clock,
+          link: link, start: clock,
           duration: Double.random(in: 0.9...1.6, using: &rng), reversed: Bool.random(using: &rng)))
       nextPulse = clock + Double.random(in: 0.05...0.25, using: &rng)
     }
     flashes = flashes.filter { clock - $0.value < 2.5 }
+    if !appearing.isEmpty { appearing = appearing.filter { clock - $0.value < 0.8 } }
   }
 
   // MARK: Building instances
@@ -362,7 +539,7 @@ final class GraphRenderer: NSObject, MTKViewDelegate {
   private func emphasis() -> [Float] {
     var weights = [Float](repeating: 1, count: snapshot.nodes.count)
     if let focusedProject {
-      for i in weights.indices where snapshot.nodes[i].projectID != focusedProject {
+      for i in weights.indices where group(of: i) != focusedProject {
         weights[i] = 0.18
       }
     }
@@ -388,21 +565,44 @@ final class GraphRenderer: NSObject, MTKViewDelegate {
     var sprites = stars
     sprites.reserveCapacity(
       stars.count + snapshot.nodes.count + 2 * hubPositions.count + pulses.count)
-    for (i, node) in snapshot.nodes.enumerated() {
+    if let inboxCenter {
+      let dim: Float =
+        hoveredProject == Self.inboxID
+        ? 1.6 : focusedProject == nil || focusedProject == Self.inboxID ? 1 : 0.3
+      sprites.append(
+        Sprite(
+          position: SIMD4(inboxCenter, inboxReach * 0.9 + 0.6),
+          color: SIMD4(Self.unfiledColor, 0.1 * dim), maxPixels: 520 * backingScale,
+          shape: .nebula))
+    }
+    for (i, node) in snapshot.nodes.enumerated() where alpha[i] > 0 {
       let color =
         node.isJournal
         ? Self.journalColor : node.projectID.flatMap { colors[$0] } ?? Self.unfiledColor
-      var glow = baseGlow[i] * weights[i]
-      var size = baseSize[i] * (weights[i] > 1.5 ? 1.35 : 1)
+      let shape: GraphShaders.Shape = node.isJournal ? .star : node.kind == .task ? .ring : .dot
+      var glow = baseGlow[i] * weights[i] * alpha[i]
+      var size =
+        baseSize[i] * (weights[i] > 1.5 ? 1.35 : 1)
+        * (shape == .star ? 1.7 : shape == .ring ? 1.3 : 1)
+      // Search matches stand out from the dimmed rest.
+      if matches != nil, alpha[i] >= 1 {
+        size *= 1.6
+        glow *= 1.4
+      }
+      if let start = appearing[i] {
+        let t = Float((clock - start) / 0.8)
+        glow += (1 - t) * 0.7
+      }
       if let flash = flashes[node.id] {
         let t = Float((clock - flash) / 2.5)
         glow += (1 - t) * 2.5
         size *= 1 + (1 - t) * 1.5
       }
-      sprites.append(Sprite(position: SIMD4(nodePositions[i], size), color: SIMD4(color, glow)))
+      sprites.append(
+        Sprite(position: SIMD4(nodePositions[i], size), color: SIMD4(color, glow), shape: shape))
     }
     // Hubs are bigger than any dot, so they get their own, larger caps.
-    for (projectID, hub) in hubPositions {
+    for (projectID, hub) in hubPositions where drawnHubs.contains(projectID) {
       let color = colors[projectID] ?? Self.unfiledColor
       let dim = hubDim(projectID)
       let breathe = 0.9 + 0.1 * Float(sin(clock * 1.3 + Double(hub.x)))
@@ -417,6 +617,7 @@ final class GraphRenderer: NSObject, MTKViewDelegate {
     }
     for pulse in pulses {
       let link = snapshot.links[pulse.link]
+      guard alpha[link.source] >= 1, alpha[link.target] >= 1 else { continue }
       var t = Float((clock - pulse.start) / pulse.duration)
       if pulse.reversed { t = 1 - t }
       let a = nodePositions[link.source], b = nodePositions[link.target]
@@ -440,24 +641,34 @@ final class GraphRenderer: NSObject, MTKViewDelegate {
     var lines: [Line] = []
     lines.reserveCapacity(snapshot.nodes.count + snapshot.links.count)
     // Spokes from each entry to its project's hub, faint.
-    for (i, node) in snapshot.nodes.enumerated() {
+    for (i, node) in snapshot.nodes.enumerated() where alpha[i] > 0 {
       guard let projectID = node.projectID, let hub = hubPositions[projectID] else { continue }
       let color = colors[projectID] ?? Self.unfiledColor
       lines.append(
         Line(
           a: SIMD4(hub, 1 * scale), b: SIMD4(nodePositions[i], 0),
-          color: SIMD4(color, 0.05 * weights[i])))
+          color: SIMD4(color, 0.05 * weights[i] * alpha[i])))
     }
     // Keyword links: project color inside a project, white dashes across.
     for (i, link) in snapshot.links.enumerated() {
+      let shown = min(alpha[link.source], alpha[link.target])
+      guard shown > 0 else { continue }
       let from = snapshot.nodes[link.source], to = snapshot.nodes[link.target]
       // A journal day's links go across projects, like cross-project links.
       let inside = from.projectID == to.projectID && !from.isJournal && !to.isJournal
+      // Links across projects (and a journal day's) show only for the
+      // hovered or selected node, or the focused project.
+      if !inside, !lit.contains(i),
+        focusedProject == nil
+          || (group(of: link.source) != focusedProject && group(of: link.target) != focusedProject)
+      {
+        continue
+      }
       let color =
         inside ? (from.projectID.flatMap { colors[$0] } ?? Self.unfiledColor) : SIMD3(1, 1, 1)
       let weight = min(weights[link.source], weights[link.target])
-      var alpha = (inside ? 0.22 : 0.1) * Float(0.6 + 0.4 * link.weight) * min(weight, 1)
-      if lit.contains(i) { alpha = 0.75 }
+      var alpha = (inside ? 0.22 : 0.1) * Float(0.6 + 0.4 * link.weight) * min(weight, 1) * shown
+      if lit.contains(i) { alpha = 0.75 * shown }
       lines.append(
         Line(
           a: SIMD4(nodePositions[link.source], (lit.contains(i) ? 1.6 : 1) * scale),
@@ -469,20 +680,43 @@ final class GraphRenderer: NSObject, MTKViewDelegate {
 
   private func updateLabels() {
     let size = SIMD2(Float(viewSize.width), Float(viewSize.height))
+    let names = Dictionary(
+      snapshot.projects.map { ($0.id, $0.name) }, uniquingKeysWith: { first, _ in first })
+    var anchors: [(id: String, position: SIMD3<Float>, radius: Float)] =
+      hubPositions
+      .filter { drawnHubs.contains($0.key) }
+      .map { ($0.key, $0.value, Self.hubRadius) }
+    if let inboxCenter { anchors.append((Self.inboxID, inboxCenter, 0.3)) }
+
     var items: [GraphLabels.Label] = []
-    for (projectID, hub) in hubPositions {
-      guard let (point, depth) = camera.project(hub, size: size) else { continue }
+    var candidates: [LabelPlacer.Candidate] = []
+    for anchor in anchors {
+      guard let (point, depth) = camera.project(anchor.position, size: size) else { continue }
       // Sit above the hub's glow (about three core radii), whatever its size.
-      let core = min(camera.screenRadius(of: Self.hubRadius, atDepth: depth, height: size.y), 16)
-      let dim = focusedProject == nil || focusedProject == projectID
+      let core = min(camera.screenRadius(of: anchor.radius, atDepth: depth, height: size.y), 16)
+      let dim = focusedProject == nil || focusedProject == anchor.id
       // Far labels fade with the fog, but stay readable.
       let opacity = max(Double(fog(depth)), 0.55) * (dim ? 1 : 0.35)
-      // Rounded so tiny camera moves don't redraw the labels every frame.
-      items.append(
+      let lift = CGFloat((core * 3 + 14).rounded())
+      let center = CGPoint(x: CGFloat(point.x.rounded()), y: CGFloat(point.y.rounded()))
+      // About the width the capsule takes: dot, padding and the name.
+      let name = anchor.id == Self.inboxID ? "Inbox" : names[anchor.id] ?? ""
+      let width = CGFloat(30 + 7 * name.count)
+      candidates.append(
         .init(
-          id: projectID,
-          point: CGPoint(x: CGFloat(point.x.rounded()), y: CGFloat(point.y.rounded())),
-          lift: CGFloat((core * 3 + 14).rounded()), opacity: (opacity * 50).rounded() / 50))
+          id: anchor.id,
+          rect: CGRect(x: center.x - width / 2, y: center.y - lift - 11, width: width, height: 22),
+          depth: depth))
+      items.append(
+        .init(id: anchor.id, point: center, lift: lift, opacity: (opacity * 50).rounded() / 50))
+    }
+    // Nearer labels win; covered ones step aside or hide.
+    let shifts = LabelPlacer.place(candidates)
+    items = items.compactMap { item in
+      guard let shift = shifts[item.id] else { return nil }
+      var item = item
+      item.lift -= shift
+      return item
     }
     items.sort { $0.id < $1.id }
     if items != labels.items { labels.items = items }
