@@ -219,6 +219,12 @@ import Testing
     #expect(rows[0].entryCount == 2)
     #expect(rows[0].openTasks == 1)
     #expect(rows[0].lastActivity != nil)
+    #expect(rows[0].addedToday == 2)
+    let tomorrow = Date().addingTimeInterval(86_400)
+    let later = try db.writer.read {
+      try AppDatabase.projectOverviews($0, now: tomorrow, calendar: .current)
+    }
+    #expect(later[0].addedToday == 0)
   }
 }
 

@@ -6,6 +6,8 @@ public struct ProjectOverview: Identifiable, Hashable, Sendable {
   public var project: Project
   public var openTasks: Int
   public var entryCount: Int
+  /// Entries saved today (local day), for the "+N today" on the card.
+  public var addedToday: Int = 0
   /// The newest entry or context change, whichever is later.
   public var lastActivity: Date?
   public var id: String { project.id }
@@ -32,6 +34,13 @@ public struct ProjectPage: Hashable, Sendable {
 extension AppDatabase {
   /// Active projects by name, then archived ones.
   public static func projectOverviews(_ db: Database) throws -> [ProjectOverview] {
+    try projectOverviews(db, now: Date(), calendar: .current)
+  }
+
+  public static func projectOverviews(_ db: Database, now: Date, calendar: Calendar) throws
+    -> [ProjectOverview]
+  {
+    let today = calendar.startOfDay(for: now)
     let projects =
       try Project
       .order(sql: "archived_at is not null, name collate nocase")
@@ -43,14 +52,15 @@ extension AppDatabase {
           select
             count(*) as entries,
             coalesce(sum(kind = 'task' and done_at is null), 0) as open_tasks,
-            max(created_at) as newest
+            max(created_at) as newest,
+            coalesce(sum(created_at >= ?), 0) as today
           from entries where project_id = ?
-          """, arguments: [project.id])
+          """, arguments: [today, project.id])
       let newest: Date? = stats?["newest"]
       let activity = [newest, project.contextUpdatedAt].compactMap { $0 }.max()
       return ProjectOverview(
         project: project, openTasks: stats?["open_tasks"] ?? 0, entryCount: stats?["entries"] ?? 0,
-        lastActivity: activity)
+        addedToday: stats?["today"] ?? 0, lastActivity: activity)
     }
   }
 
