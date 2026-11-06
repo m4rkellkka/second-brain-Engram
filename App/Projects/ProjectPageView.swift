@@ -28,19 +28,24 @@ struct ProjectPageView: View {
             Text(error).font(.geist(12)).foregroundStyle(Theme.danger)
           }
           LiveContextCard(project: page.project)
-          ForEach(ContextSection.allCases, id: \.self) { section in
-            ContextSectionCard(
-              section: section, lines: page.sections[section] ?? [], projectID: page.project.id)
+          LazyVGrid(
+            columns: [GridItem(.adaptive(minimum: 320), spacing: 16, alignment: .top)],
+            alignment: .leading, spacing: 16
+          ) {
+            TasksCard(open: page.openTasks, done: page.doneTasks)
+            ForEach([ContextSection.decision, .idea, .stack], id: \.self) { section in
+              ContextSectionCard(
+                section: section, lines: page.sections[section] ?? [], projectID: page.project.id)
+            }
           }
-          TasksCard(open: page.openTasks, done: page.doneTasks)
           RecentCard(entries: page.recentEntries)
         } else {
           Text("This project no longer exists.").font(.geist(13)).foregroundStyle(Theme.textSubtle)
         }
       }
       .padding(.horizontal, 32)
-      .padding(.vertical, 24)
-      .frame(maxWidth: 760)
+      .padding(.vertical, 22)
+      .frame(maxWidth: 1040)
       .frame(maxWidth: .infinity)
     }
     .scrollContentBackground(.hidden)
@@ -70,15 +75,39 @@ private struct ProjectHeader: View {
   @State private var isRecoloring = false
 
   var body: some View {
-    HStack(spacing: 12) {
-      Circle().fill(Color(hexString: project.color)).frame(width: 14, height: 14)
-      Text(project.name).font(.geist(24, .semibold)).foregroundStyle(Theme.text)
-      if project.archivedAt != nil {
-        Text("Archived").font(.geist(12)).foregroundStyle(Theme.textSubtle)
-          .padding(.horizontal, 9).frame(height: 22)
-          .background(Capsule().stroke(Theme.borderStrong))
+    HStack(alignment: .top, spacing: 12) {
+      VStack(alignment: .leading, spacing: 10) {
+        HStack(spacing: 12) {
+          Circle().fill(Color(hexString: project.color)).frame(width: 14, height: 14)
+          Text(project.name).font(.geist(28, .semibold)).tracking(-0.4)
+            .foregroundStyle(Theme.text)
+          if project.archivedAt != nil {
+            Text("archived").font(.geistMono(11)).foregroundStyle(Theme.textSubtle)
+              .padding(.horizontal, 9).frame(height: 22)
+              .overlay(Capsule().strokeBorder(Theme.borderStrong))
+          }
+        }
+        HStack(spacing: 8) {
+          if let status = project.status {
+            Text(status)
+              .font(.geistMono(11))
+              .foregroundStyle(Theme.text)
+              .padding(.horizontal, 10)
+              .frame(height: 24)
+              .overlay(Capsule().strokeBorder(Theme.borderStrong))
+          }
+          if let updated = project.contextUpdatedAt {
+            Text(
+              "\(project.statusSource == .user ? "status by you" : "status by Claude") · updated \(updated.formatted(.relative(presentation: .named)))"
+            )
+            .font(.geist(12))
+            .foregroundStyle(Theme.textSubtle)
+          }
+        }
       }
       Spacer()
+      Button("Show in Brain") { model.showInBrain(project.id) }
+        .buttonStyle(QuietButtonStyle())
       Menu {
         Button("Rename…") { isRenaming = true }
         Button("Change color…") { isRecoloring = true }
@@ -94,9 +123,9 @@ private struct ProjectHeader: View {
         }
       } label: {
         Image(systemName: "ellipsis")
-          .foregroundStyle(Theme.textMuted)
+          .foregroundStyle(Theme.text)
           .frame(width: 32, height: 32)
-          .background(Circle().fill(Theme.surface2))
+          .glassPanel(radius: Theme.controlRadius)
       }
       .menuStyle(.button)
       .buttonStyle(.plain)
@@ -138,9 +167,9 @@ private struct LiveContextCard: View {
   let project: Project
 
   var body: some View {
-    Card {
+    Card(glass: true) {
       VStack(alignment: .leading, spacing: 14) {
-        Text("LIVE CONTEXT").font(.geistMono(11, .medium)).foregroundStyle(Theme.accent)
+        SectionLabel("Live context")
         EditableText(
           text: project.summary, placeholder: "No summary yet. Claude writes one as you talk.",
           source: project.summarySource, font: .geist(15), multiline: true,
@@ -158,10 +187,6 @@ private struct LiveContextCard: View {
               model.change { try $0.setProjectText(.status, to: text, projectID: project.id) }
             },
             handBack: { model.change { try $0.handBackToClaude(.status, projectID: project.id) } })
-        }
-        if let updated = project.contextUpdatedAt {
-          Text("Updated \(updated.formatted(.relative(presentation: .named)))")
-            .font(.geistMono(11)).foregroundStyle(Theme.textSubtle)
         }
       }
     }
@@ -250,7 +275,7 @@ private struct ContextSectionCard: View {
   var body: some View {
     Card {
       VStack(alignment: .leading, spacing: 10) {
-        Text(section.title).font(.geist(14, .semibold)).foregroundStyle(Theme.text)
+        SectionLabel(lines.isEmpty ? section.title : "\(section.title) · \(lines.count)")
         if lines.isEmpty {
           Text("Nothing yet.").font(.geist(12.5)).foregroundStyle(Theme.textSubtle)
         }
@@ -357,7 +382,7 @@ private struct TasksCard: View {
   var body: some View {
     Card {
       VStack(alignment: .leading, spacing: 10) {
-        Text("Tasks").font(.geist(14, .semibold)).foregroundStyle(Theme.text)
+        SectionLabel(open.isEmpty ? "Open tasks" : "Open tasks · \(open.count)")
         if open.isEmpty {
           Text("No open tasks.").font(.geist(12.5)).foregroundStyle(Theme.textSubtle)
         }
@@ -424,7 +449,7 @@ private struct RecentCard: View {
   var body: some View {
     Card {
       VStack(alignment: .leading, spacing: 10) {
-        Text("Recent notes").font(.geist(14, .semibold)).foregroundStyle(Theme.text)
+        SectionLabel("Recent")
         if entries.isEmpty {
           Text("Nothing yet.").font(.geist(12.5)).foregroundStyle(Theme.textSubtle)
         }
@@ -447,15 +472,18 @@ private struct RecentCard: View {
 
 // MARK: - Shared bits
 
+/// A section of the page: quiet by default, glass for the live context.
 private struct Card<Content: View>: View {
+  var glass = false
   @ViewBuilder let content: Content
 
   var body: some View {
-    content
-      .padding(18)
-      .frame(maxWidth: .infinity, alignment: .leading)
-      .background(RoundedRectangle(cornerRadius: Theme.cardRadius).fill(Theme.surface))
-      .overlay(RoundedRectangle(cornerRadius: Theme.cardRadius).stroke(Theme.border))
+    let padded = content.padding(18).frame(maxWidth: .infinity, alignment: .leading)
+    if glass {
+      padded.glassPanel()
+    } else {
+      padded.quietCard()
+    }
   }
 }
 

@@ -91,6 +91,11 @@ struct BrainView: View {
               setSelection(.project(project.id))
             }
           #endif
+          // "Show in Brain" on a project page asked to fly to a project.
+          if let id = model.brainFocusRequest, value.projects.contains(where: { $0.id == id }) {
+            model.brainFocusRequest = nil
+            setSelection(.project(id))
+          }
           // Indexes may mean other entries now; selection is kept by id.
           hover(nil)
           if case .node(let id) = selection, holder.renderer?.index(of: id) == nil {

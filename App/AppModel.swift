@@ -81,6 +81,15 @@ final class AppModel {
   }
 
   /// ⌘N: focus a capture field, staying on the Inbox if it is open.
+  /// A project the Brain should fly to the next time it shows.
+  var brainFocusRequest: String?
+
+  /// "Show in Brain" on a project page.
+  func showInBrain(_ projectID: String) {
+    brainFocusRequest = projectID
+    section = .brain
+  }
+
   func startNewThought() {
     if section != .inbox { section = .today }
     captureFocusToken += 1
