@@ -13,7 +13,6 @@ struct BrainView: View {
   @State private var hovered: Int?
   @State private var dragStart: CGSize = .zero
   @State private var selection: BrainSelection?
-  @State private var scrollMonitor: Any?
 
   var body: some View {
     HStack(spacing: 0) {
@@ -28,13 +27,29 @@ struct BrainView: View {
           } else {
             canvas(size: geometry.size)
             if let labels = holder.renderer?.labels {
-              HubLabels(labels: labels, graph: graph)
+              HubLabels(
+                labels: labels, graph: graph,
+                select: { setSelection(.project($0)) },
+                hover: { holder.renderer?.hoveredProject = $0 })
             }
+            // Keeps labels that drift under the header from showing through it.
+            LinearGradient(
+              stops: [
+                .init(color: Theme.background.opacity(0.95), location: 0),
+                .init(color: Theme.background.opacity(0.85), location: 0.6),
+                .init(color: Theme.background.opacity(0), location: 1),
+              ],
+              startPoint: .top, endPoint: .bottom
+            )
+            .frame(height: 170)
+            .allowsHitTesting(false)
             Header(graph: graph, focused: selection != nil) {
               setSelection(nil)
             }
             .padding(20)
-            if let hovered, hovered < graph.nodes.count, selection != .node(hovered) {
+            if let hovered, hovered < graph.nodes.count,
+              selection != .node(graph.nodes[hovered].id)
+            {
               HoverLabel(node: graph.nodes[hovered], project: project(of: hovered))
                 .position(labelPosition(in: geometry.size))
                 .allowsHitTesting(false)
@@ -76,14 +91,15 @@ struct BrainView: View {
               setSelection(.project(project.id))
             }
           #endif
-          if case .node(let i) = selection, i >= value.nodes.count { setSelection(nil) }
+          // Indexes may mean other entries now; selection is kept by id.
+          hover(nil)
+          if case .node(let id) = selection, holder.renderer?.index(of: id) == nil {
+            setSelection(nil)
+          } else {
+            setSelection(selection)
+          }
         }
       } catch {}
-    }
-    .onAppear(perform: startScrollZoom)
-    .onDisappear {
-      if let scrollMonitor { NSEvent.removeMonitor(scrollMonitor) }
-      scrollMonitor = nil
     }
   }
 
@@ -106,16 +122,10 @@ struct BrainView: View {
         }
         .onEnded { _ in dragStart = .zero }
     )
-    .simultaneousGesture(
-      MagnifyGesture().onChanged { value in
-        holder.renderer?.zoom(
-          by: Float(1 / max(value.magnification, 0.01)).squareRoot().squareRoot())
-      }
-    )
     .onTapGesture { location in
       switch holder.renderer?.hit(at: location, size: size) {
       case .hub(let projectID): setSelection(.project(projectID))
-      case .node(let index): setSelection(.node(index))
+      case .node(let index): setSelection(.node(graph.nodes[index].id))
       case nil: setSelection(nil)
       }
     }
@@ -123,9 +133,13 @@ struct BrainView: View {
       switch phase {
       case .active(let location):
         pointer = location
-        if case .node(let index) = holder.renderer?.hit(at: location, size: size) {
+        switch holder.renderer?.hit(at: location, size: size) {
+        case .node(let index):
           hover(index)
-        } else {
+        case .hub(let projectID):
+          hover(nil)
+          holder.renderer?.hoveredProject = projectID
+        case nil:
           hover(nil)
         }
       case .ended:
@@ -137,6 +151,7 @@ struct BrainView: View {
   private func hover(_ index: Int?) {
     hovered = index
     holder.renderer?.hoveredNode = index
+    holder.renderer?.hoveredProject = nil
   }
 
   private func setSelection(_ value: BrainSelection?) {
@@ -145,9 +160,10 @@ struct BrainView: View {
     case .project(let id):
       holder.renderer?.selectedNode = nil
       holder.renderer?.focus(id)
-    case .node(let index):
+    case .node(let id):
+      let index = holder.renderer?.index(of: id)
       holder.renderer?.selectedNode = index
-      holder.renderer?.focus(graph.nodes[index].projectID)
+      holder.renderer?.focus(index.flatMap { graph.nodes[$0].projectID })
     case nil:
       holder.renderer?.selectedNode = nil
       holder.renderer?.focus(nil)
@@ -164,25 +180,12 @@ struct BrainView: View {
       y: min(max(pointer.y - 40, 44), size.height - 44))
   }
 
-  /// Scroll wheel and trackpad scrolling zoom while the Brain is showing.
-  private func startScrollZoom() {
-    guard scrollMonitor == nil else { return }
-    scrollMonitor = NSEvent.addLocalMonitorForEvents(matching: .scrollWheel) { event in
-      let deltaY = Float(event.scrollingDeltaY)
-      let handled = MainActor.assumeIsolated { () -> Bool in
-        guard model.section == .brain, !graph.nodes.isEmpty, let renderer = holder.renderer
-        else { return false }
-        renderer.zoom(by: exp(-deltaY * 0.01))
-        return true
-      }
-      return handled ? nil : event
-    }
-  }
 }
 
 enum BrainSelection: Hashable {
   case project(String)
-  case node(Int)
+  /// An entry, by id: indexes change whenever the graph updates.
+  case node(String)
 }
 
 /// Keeps the renderer alive across SwiftUI updates; observable so the
@@ -198,8 +201,9 @@ struct MetalGraphView: NSViewRepresentable {
   let holder: RendererHolder
   let onReady: (GraphRenderer) -> Void
 
-  func makeNSView(context: Context) -> MTKView {
-    let view = MTKView()
+  func makeNSView(context: Context) -> GraphMTKView {
+    let view = GraphMTKView()
+    view.onZoom = { [holder] factor in holder.renderer?.zoom(by: factor) }
     view.colorPixelFormat = .bgra8Unorm
     view.sampleCount = 4
     view.clearColor = MTLClearColor(red: 0x09 / 255, green: 0x09 / 255, blue: 0x0B / 255, alpha: 1)
@@ -212,35 +216,110 @@ struct MetalGraphView: NSViewRepresentable {
     return view
   }
 
-  func updateNSView(_ view: MTKView, context: Context) {}
+  func updateNSView(_ view: GraphMTKView, context: Context) {}
 }
 
-/// Project names next to their hubs; the renderer moves them every frame.
+/// The graph's Metal view. Scrolling and pinching zoom only while the
+/// pointer is over the graph (so the side panel still scrolls), and drawing
+/// pauses while the window can't be seen, e.g. closed to the menu bar.
+final class GraphMTKView: MTKView {
+  var onZoom: ((Float) -> Void)?
+  /// SwiftUI's gesture layer sits on top of this view and takes scroll
+  /// events first, so a local monitor watches them and keeps only those
+  /// over the graph.
+  private var monitor: Any?
+
+  private func zoom(for event: NSEvent) -> Float? {
+    switch event.type {
+    case .scrollWheel:
+      // A mouse wheel moves in lines, a trackpad in points.
+      let deltaY = Float(event.scrollingDeltaY) * (event.hasPreciseScrollingDeltas ? 1 : 8)
+      return exp(-deltaY * 0.01)
+    case .magnify:
+      // `magnification` is the change since the last event, not a total.
+      return 1 / (1 + max(Float(event.magnification), -0.9))
+    default:
+      return nil
+    }
+  }
+
+  private func isOverGraph(_ event: NSEvent) -> Bool {
+    guard event.window === window, !isHiddenOrHasHiddenAncestor else { return false }
+    return bounds.contains(convert(event.locationInWindow, from: nil))
+  }
+
+  override func viewWillMove(toWindow newWindow: NSWindow?) {
+    super.viewWillMove(toWindow: newWindow)
+    NotificationCenter.default.removeObserver(
+      self, name: NSWindow.didChangeOcclusionStateNotification, object: nil)
+    if let monitor { NSEvent.removeMonitor(monitor) }
+    monitor = nil
+  }
+
+  override func viewDidMoveToWindow() {
+    super.viewDidMoveToWindow()
+    guard let window else { return }
+    NotificationCenter.default.addObserver(
+      self, selector: #selector(occlusionChanged),
+      name: NSWindow.didChangeOcclusionStateNotification, object: window)
+    occlusionChanged()
+    monitor = NSEvent.addLocalMonitorForEvents(matching: [.scrollWheel, .magnify]) {
+      [weak self] event in
+      // NSEvent isn't Sendable, so only a Bool leaves the main-actor block.
+      let handled = MainActor.assumeIsolated { () -> Bool in
+        guard let self, self.isOverGraph(event), let factor = self.zoom(for: event) else {
+          return false
+        }
+        self.onZoom?(factor)
+        return true
+      }
+      return handled ? nil : event
+    }
+  }
+
+  @objc private func occlusionChanged() {
+    isPaused = !(window?.occlusionState.contains(.visible) ?? false)
+  }
+}
+
+/// Project names above their hubs; the renderer moves them every frame.
+/// Clicking a name focuses the project, hovering lights it up.
 private struct HubLabels: View {
   let labels: GraphLabels
   let graph: GraphSnapshot
+  let select: (String) -> Void
+  let hover: (String?) -> Void
 
   var body: some View {
-    let names = Dictionary(uniqueKeysWithValues: graph.projects.map { ($0.id, $0) })
+    let names = Dictionary(
+      graph.projects.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
     ZStack(alignment: .topLeading) {
       ForEach(labels.items) { label in
         if let project = names[label.id] {
-          HStack(spacing: 6) {
-            Circle().fill(Color(hexString: project.color)).frame(width: 6, height: 6)
-            Text(project.name).font(.geist(12, .medium)).foregroundStyle(Theme.text)
+          Button {
+            select(project.id)
+          } label: {
+            HStack(spacing: 6) {
+              Circle().fill(Color(hexString: project.color)).frame(width: 6, height: 6)
+              Text(project.name).font(.geist(12, .medium)).foregroundStyle(Theme.text)
+            }
+            .padding(.horizontal, 8)
+            .frame(height: 22)
+            .background(Capsule().fill(Theme.background.opacity(0.6)))
+            .overlay(Capsule().stroke(Theme.border))
+            .contentShape(Capsule())
           }
-          .padding(.horizontal, 8)
-          .frame(height: 22)
-          .background(Capsule().fill(Theme.background.opacity(0.72)))
-          .overlay(Capsule().stroke(Theme.border))
+          .buttonStyle(.plain)
+          .focusEffectDisabled()
+          .onHover { inside in hover(inside ? project.id : nil) }
+          .accessibilityLabel("Focus \(project.name)")
           .opacity(label.opacity)
           .fixedSize()
-          .position(x: label.point.x, y: label.point.y - 26)
+          .position(x: label.point.x, y: label.point.y - label.lift)
         }
       }
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-    .allowsHitTesting(false)
   }
 }
 
@@ -257,16 +336,30 @@ private struct Header: View {
       )
       .font(.geistMono(11))
       .foregroundStyle(Theme.textSubtle)
-      HStack(spacing: 10) {
-        Text("Drag to turn · scroll to zoom · click a project")
-          .font(.geist(11.5))
-          .foregroundStyle(Theme.textSubtle)
-        if focused {
-          SmallButton(
-            title: "Show all", symbol: "arrow.down.right.and.arrow.up.left", action: showAll)
-        }
+      .lineLimit(1)
+      // The hint shrinks, then hides, when the side panel leaves less room.
+      ViewThatFits(in: .horizontal) {
+        hintRow("Drag to turn · scroll to zoom · click a project")
+        hintRow("Drag · scroll · click")
+        hintRow(nil)
       }
       .padding(.top, 4)
+    }
+  }
+
+  private func hintRow(_ hint: String?) -> some View {
+    HStack(spacing: 10) {
+      if let hint {
+        Text(hint)
+          .font(.geist(11.5))
+          .foregroundStyle(Theme.textSubtle)
+          .lineLimit(1)
+          .fixedSize()
+      }
+      if focused {
+        SmallButton(
+          title: "Show all", symbol: "arrow.down.right.and.arrow.up.left", action: showAll)
+      }
     }
   }
 }

@@ -9,10 +9,15 @@ struct BrainSidePanel: View {
   let close: () -> Void
   @State private var page: ProjectPage?
 
+  private var node: GraphSnapshot.Node? {
+    guard case .node(let id) = selection else { return nil }
+    return graph.nodes.first { $0.id == id }
+  }
+
   private var projectID: String? {
     switch selection {
     case .project(let id): id
-    case .node(let index): index < graph.nodes.count ? graph.nodes[index].projectID : nil
+    case .node: node?.projectID
     }
   }
 
@@ -33,8 +38,8 @@ struct BrainSidePanel: View {
         }
         .padding(.bottom, -12)
 
-        if case .node(let index) = selection, index < graph.nodes.count {
-          EntryCard(node: graph.nodes[index])
+        if let node {
+          EntryCard(node: node)
         }
 
         if let page {
