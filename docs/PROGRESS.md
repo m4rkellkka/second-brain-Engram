@@ -1,6 +1,6 @@
 # Progress
 
-**Current version:** 0.9.2 · **Current phase:** Phase 10 — Redesign · status: **not started**
+**Current version:** 0.10.0 · **Current phase:** Phase 11 — Journal · status: **not started**
 
 Engram was rebuilt as a native macOS app on 2026-11-05 (see `docs/SPEC.md`). Phases 0–5 shipped the Next.js + Supabase web app, kept on the `web-archive` branch.
 
@@ -11,7 +11,7 @@ Engram was rebuilt as a native macOS app on 2026-11-05 (see `docs/SPEC.md`). Pha
 | 7     | Claude connector + search    | done (v0.7.0)          |
 | 8     | Projects & live context      | done (v0.8.0)          |
 | 9     | Brain graph                  | done (v0.9.0)          |
-| 10    | Redesign                     | —                      |
+| 10    | Redesign                     | done (v0.10.0)         |
 | 11    | Journal                      | —                      |
 | 12    | Brain 2.0                    | —                      |
 | 13    | Open-source launch           | —                      |
@@ -77,6 +77,17 @@ Engram was rebuilt as a native macOS app on 2026-11-05 (see `docs/SPEC.md`). Pha
 - [x] Zoom only over the graph (side panel scrolls), per-event pinch, selection by id, clickable labels, hub hover
 - [x] Drawing pauses while the window is hidden; reused GPU buffers
 - [x] 82 tests; checked by Mikhail by hand (scroll, pinch, label clicks, selection after a live save)
+
+## Phase 10 checklist (done)
+
+- [x] Mockups of every screen on the design canvas (page "Phase 10 screens"), approved by Mikhail
+- [x] Tokens and shared components: near-black ground, glass panels, cool border, cyan accent
+- [x] Top bar with tabs Today · Inbox · Projects · Brain instead of the sidebar; ⌘1…⌘4; last tab remembered; window dragged by the bar
+- [x] Today: digest in EngramKit (local day, "not sure" groups, unsorted, due soon, busiest projects), live updates
+- [x] Inbox grouped by day, "not sure" cards per suggested project, "Not sure" filter, compact capture
+- [x] Projects as cards with "+N today"; project page in a two-column grid; "Show in Brain"
+- [x] Brain chrome on glass, project chips; ⌘K with project matches and highlights; Settings → About; menu-bar count
+- [x] 85 tests (Today digest with local midnight in UTC+3, waiting count, today's count on project cards)
 
 ## Environments
 
@@ -164,6 +175,10 @@ Rows before 2026-11-05 describe the web app (now on the `web-archive` branch).
 | 2026-11-06 | Today becomes the first tab; the app reopens on the last tab                              | Mikhail's call; Today is built from data Engram already has                                               |
 | 2026-11-06 | Journal: own table, Claude appends only, shown in the tab, ⌘K and the graph               | Mikhail wants a diary he can tell Claude or write himself, linked to what happened that day               |
 | 2026-11-06 | Timeline slider ("watch the brain grow") is in Phase 12, not an idea for later            | Mikhail's call; it is also the story for the launch GIF                                                   |
+| 2026-11-06 | Own top bar with a hidden title bar, not toolbar items                                    | Exact look on macOS 15 and 26 (toolbar items get the system's glass bezel); the bar drags the window       |
+| 2026-11-06 | Glass = system `.ultraThinMaterial` under a dark tint                                     | Native, cheap, and it blurs the Metal graph under the Brain's panels                                       |
+| 2026-11-06 | Today's mini graph drawn with SwiftUI Canvas, not Metal                                   | The tab opens instantly and needs no second renderer                                                       |
+| 2026-11-06 | "Try again" on the error screen left out                                                  | The database opens once at launch; a retry means relaunching, not worth it now                             |
 
 ## Open questions
 
