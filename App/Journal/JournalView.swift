@@ -393,7 +393,11 @@ private struct OnThisDay: View {
       VStack(alignment: .leading, spacing: 10) {
         SectionLabel("On this day · \(page.entries.count) saved · \(page.done.count) done")
         LazyVGrid(
-          columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)],
+          // Top-aligned, so cards of different heights still line up.
+          columns: [
+            GridItem(.flexible(), spacing: 10, alignment: .top),
+            GridItem(.flexible(), spacing: 10, alignment: .top),
+          ],
           alignment: .leading, spacing: 10
         ) {
           ForEach(Array(items.prefix(showAll ? items.count : limit)), id: \.item.id) { row in
