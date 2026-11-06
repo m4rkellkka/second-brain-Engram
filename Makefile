@@ -4,7 +4,7 @@ DERIVED := build/DerivedData
 APP := $(DERIVED)/Build/Products/Debug/Engram.app
 SWIFT_SOURCES := App Packages/EngramKit/Sources Packages/EngramKit/Tests Packages/EngramKit/Package.swift
 
-.PHONY: build test lint format run clean eval-connector demo-graph
+.PHONY: build test lint format run clean eval-connector demo-graph release
 
 build:
 	xcodebuild -project $(PROJECT) -scheme $(SCHEME) -configuration Debug \
@@ -30,3 +30,6 @@ eval-connector: build
 
 demo-graph: build
 	COUNT=$(or $(COUNT),2000) PROJECTS=$(or $(PROJECTS),8) scripts/demo-graph.sh
+
+release:
+	scripts/release.sh
