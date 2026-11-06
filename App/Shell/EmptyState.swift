@@ -8,9 +8,9 @@ struct EmptyState: View {
   var body: some View {
     VStack(spacing: 12) {
       Image(systemName: symbol)
-        .font(.system(size: 30, weight: .light))
-        .foregroundStyle(Theme.textSubtle)
-      Text(title).font(.geist(17, .semibold)).foregroundStyle(Theme.text)
+        .font(.system(size: 34, weight: .light))
+        .foregroundStyle(Theme.accent.opacity(0.8))
+      Text(title).font(.geist(20, .semibold)).foregroundStyle(Theme.text)
       Text(text)
         .font(.geist(13.5))
         .foregroundStyle(Theme.textMuted)

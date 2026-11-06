@@ -20,9 +20,9 @@ struct BrainView: View {
         ZStack(alignment: .topLeading) {
           if graph.nodes.isEmpty {
             EmptyState(
-              symbol: "point.3.connected.trianglepath.dotted", title: "Brain",
+              symbol: "point.3.connected.trianglepath.dotted", title: "Your brain is still quiet",
               text:
-                "Your graph appears here as soon as you save something with Claude or the capture field."
+                "The graph lights up as soon as you save something with Claude or the capture field."
             )
           } else {
             canvas(size: geometry.size)
