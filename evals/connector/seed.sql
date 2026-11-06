@@ -16,3 +16,14 @@ insert into captures values
 insert into entries (id, capture_id, kind, content, needs_review, created_at, updated_at) values
   ('e-typed-1', 'c-typed-1', 'note', 'записаться к стоматологу на следующей неделе и купить протеин', 0, '2026-11-04 08:00:00.000', '2026-11-04 08:00:00.000'),
   ('e-typed-2', 'c-typed-2', 'note', 'idea: Tamam could send a weekly sales digest to owners', 0, '2026-11-04 09:00:00.000', '2026-11-04 09:00:00.000');
+
+-- Journal days the user wrote earlier this week, relative to the day the
+-- eval runs, so "how did I feel last week?" has something to answer from.
+insert into journal_days (day, time_zone, created_at, updated_at) values
+  (date('now', 'localtime', '-6 days'), 'Europe/Istanbul', datetime('now', '-6 days'), datetime('now', '-6 days')),
+  (date('now', 'localtime', '-4 days'), 'Europe/Istanbul', datetime('now', '-4 days'), datetime('now', '-4 days')),
+  (date('now', 'localtime', '-2 days'), 'Europe/Istanbul', datetime('now', '-2 days'), datetime('now', '-2 days'));
+insert into journal_paragraphs (id, day, author, text, created_at) values
+  ('j-1', date('now', 'localtime', '-6 days'), 'user', 'Тревожно из-за экзамена по сетям, почти ничего не успел повторить. Плохо спал.', datetime('now', '-6 days')),
+  ('j-2', date('now', 'localtime', '-4 days'), 'user', 'Отличный день: Engram наконец заработал на Swift, чувствую прилив сил.', datetime('now', '-4 days')),
+  ('j-3', date('now', 'localtime', '-2 days'), 'user', 'Устал, весь день на парах. Вечером погулял, стало легче.', datetime('now', '-2 days'));

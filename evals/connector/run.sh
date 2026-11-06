@@ -57,7 +57,14 @@ sqlite3 -header -column "$DB" "
   where i.dismissed_at is null order by p.slug, i.section, i.created_at" | tee "$OUT/context.txt"
 
 echo
-for file in "$OUT"/0*-search-decision.reply.txt "$OUT"/0*-study-tasks.reply.txt; do
+echo "== Journal"
+sqlite3 -header -column "$DB" "
+  select day, author, datetime(created_at, 'localtime') as written_local, text
+  from journal_paragraphs order by day, created_at" | tee "$OUT/journal.txt"
+
+echo
+for file in "$OUT"/0*-search-decision.reply.txt "$OUT"/0*-study-tasks.reply.txt \
+  "$OUT"/0*-journal-week.reply.txt; do
   echo "== $(basename "$file")"
   cat "$file"
   echo

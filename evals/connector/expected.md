@@ -19,8 +19,13 @@ actual entries; compare them by hand.
 | 11 | Engram progress | contextUpdates for engram: decision "project pages are native SwiftUI", stack "GRDB", status like "beta" |
 | 12 | Tamam pivot | Tamam summary stays the user's text (result says "kept the user's text"); status updated to "first customers" |
 | 13 | Repeat | the FTS5 decision is not added twice (alreadyThere) |
+| 14 | Journal today | one Claude paragraph on today, first person, about the networks class, the journal finally working, tired but happy, the call with parents; no new entries |
+| 15 | Journal yesterday | one Claude paragraph dated yesterday (headache, skipped training, series, early bed) |
+
+Conversation 09 asks for a note explicitly, so it stays an entry, not a journal paragraph.
 
 Questions after the saves:
 
 - "What did I decide about search?" → answers FTS5 without embeddings, citing that entry.
 - "Open study tasks?" → lists the ucheba tasks with their due dates.
+- "How did I feel last week?" → reads get_journal and answers from the seeded days (anxious about the exam, then a great day with Engram, then tired but better after a walk) plus anything conversations 14 and 15 added.
