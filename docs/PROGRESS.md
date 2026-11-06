@@ -1,6 +1,6 @@
 # Progress
 
-**Current version:** 0.9.1 · **Current step:** 0.9.2 graph fixes, then Phase 10 — Redesign · status: **in progress**
+**Current version:** 0.9.2 · **Current phase:** Phase 10 — Redesign · status: **not started**
 
 Engram was rebuilt as a native macOS app on 2026-11-05 (see `docs/SPEC.md`). Phases 0–5 shipped the Next.js + Supabase web app, kept on the `web-archive` branch.
 
@@ -68,6 +68,15 @@ Engram was rebuilt as a native macOS app on 2026-11-05 (see `docs/SPEC.md`). Pha
 
 - [x] `update_project` and `complete_task` tools: in a real chat Claude couldn't update a page or tick a task
 - [x] Graph redrawn with Metal ("synapses"): glow, depth fog, link-sized dots, labels, pulses, flashes, hover highlight, focus + side panel; 60 fps on 2,000 entries
+
+## Phase 9 fixes (v0.9.2, review on 2,000 demo entries)
+
+- [x] Dots sized from the projection, not the turning view-projection matrix (GPU test draws a dot head-on and from the side)
+- [x] Per-sprite size caps, so hubs and halos are visible
+- [x] Stable layout: entry spots from their id, sizes on a √2 ladder; dots glide on updates
+- [x] Zoom only over the graph (side panel scrolls), per-event pinch, selection by id, clickable labels, hub hover
+- [x] Drawing pauses while the window is hidden; reused GPU buffers
+- [x] 82 tests; checked by Mikhail by hand (scroll, pinch, label clicks, selection after a live save)
 
 ## Environments
 

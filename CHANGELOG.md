@@ -6,6 +6,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.2] - 2026-11-06
+
+### Fixed
+
+- Brain: dots no longer squash into dim slivers when the graph turns to the side.
+- Brain: project hubs show as glowing centres again instead of looking like any other dot.
+- Brain: saving an entry no longer reshuffles its cluster; dots glide to their new places and new entries fly out of their hub.
+- Brain: the side panel scrolls again; the scroll wheel and pinch zoom only over the graph, and pinch no longer speeds up.
+- Brain: the selected entry stays selected after a live update instead of switching to another one.
+- Brain: project labels sit above their hub, stay readable, don't show through the header and can be clicked to focus the project.
+- Brain: drawing pauses while the window is hidden, which saves battery.
+
 ## [0.9.1] - 2026-11-05
 
 ### Added
@@ -185,7 +197,8 @@ Engram is now a native macOS app. The Next.js + Supabase web app (0.1.0–0.5.0)
 - GitHub Actions CI: lint, format check, typecheck and build.
 - MIT license.
 
-[Unreleased]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.9.1...HEAD
+[Unreleased]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.9.2...HEAD
+[0.9.2]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.9.1...v0.9.2
 [0.9.1]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.7.0...v0.8.0
