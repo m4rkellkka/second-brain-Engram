@@ -204,7 +204,7 @@ create virtual table journal_fts using fts5(text, tokenize='unicode61 remove_dia
 
 Tool inputs are validated in EngramKit: unknown project slugs become `needs_review`, dates must parse, content is trimmed and length-capped. The tool descriptions carry the sorting instructions the Phase 3 prompt used to hold: kinds, local time and time zone for "Friday", one entry per idea or task, the user's language.
 
-**Connecting.** Settings has "Connect to Claude Desktop", which adds `Engram --mcp` to `~/Library/Application Support/Claude/claude_desktop_config.json` (keeping every other setting and saving a backup first). "Disconnect" removes it. The entry points at the app's current location, so moving `Engram.app` means connecting again. A one-click Desktop Extension (`.mcpb`) is planned for Phase 13.
+**Connecting.** Settings has "Connect to Claude Desktop", which adds `Engram --mcp` to `~/Library/Application Support/Claude/claude_desktop_config.json` (keeping every other setting and saving a backup first). "Disconnect" removes it. The entry points at the app's current location, so moving `Engram.app` means connecting again. A one-click Desktop Extension (`.mcpb`) is a post-MVP item: it bundles its own binary, while the connector lives inside `Engram.app` and must open the same database.
 
 ## Build phases
 
@@ -338,7 +338,7 @@ Done when:
 Goal: a stranger installs it and wants to star it.
 
 - README: hook, demo GIF, screenshots, features
-- Release workflow: build, ad-hoc sign, zip/DMG, attach to a GitHub Release; install steps including the quarantine command
+- Release workflow: build, ad-hoc sign, zip/DMG, attach to a GitHub Release; install steps including the quarantine command. CI drafts the release from the `chore(release)` commit; it is published by hand
 - Markdown / Obsidian export (one file per entry, front matter, folder per project; journal days as `journal/YYYY-MM-DD.md`)
 - CONTRIBUTING, issue templates, roadmap
 
@@ -350,7 +350,7 @@ After Phase 13: merge `demo` into `main`, then `dev` for further work; 1.0.0 whe
 
 ## Post-MVP, in rough priority
 
-1. **Desktop Extension (`.mcpb`)** for one-click connecting, with the Phase 13 release work.
+1. **Desktop Extension (`.mcpb`)** for one-click connecting (moved out of Phase 13 on 2026-11-06).
 2. **iPhone.** Talking to Claude on the phone while the Mac is off. Open options: a scheduled Claude task that writes into a folder connected through the desktop app (scheduled tasks run in the cloud and reach connected folders only while the desktop app is open), an iCloud Drive inbox folder fed by an iOS Shortcut, or a tunnel to the connector.
 3. **Optional in-app sorting** with the user's own API key, for people who don't use Claude Desktop.
 4. **Global hotkey** and **launch at login.**

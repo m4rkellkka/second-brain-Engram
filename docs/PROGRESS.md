@@ -1,6 +1,6 @@
 # Progress
 
-**Current version:** 0.12.2 · **Current phase:** Phase 13 — Open-source launch · status: **not started**
+**Current version:** 0.13.0 · **Current phase:** Phase 13 — Open-source launch · status: **built, waiting for Mikhail's OK to publish**
 
 Engram was rebuilt as a native macOS app on 2026-11-05 (see `docs/SPEC.md`). Phases 0–5 shipped the Next.js + Supabase web app, kept on the `web-archive` branch.
 
@@ -14,7 +14,7 @@ Engram was rebuilt as a native macOS app on 2026-11-05 (see `docs/SPEC.md`). Pha
 | 10    | Redesign                     | done (v0.10.0)         |
 | 11    | Journal                      | done (v0.11.0)         |
 | 12    | Brain 2.0                    | done (v0.12.0)         |
-| 13    | Open-source launch           | —                      |
+| 13    | Open-source launch           | built (v0.13.0, draft) |
 
 ## Phase 6 checklist (done)
 
@@ -120,6 +120,16 @@ Engram was rebuilt as a native macOS app on 2026-11-05 (see `docs/SPEC.md`). Pha
 - [x] Brain header and search/filter share one row and no longer overlap with the side panel open
 - [x] v0.12.2: hover hit test once per frame inside the renderer, camera matrix built once per test, hover card in its own view: fast mouse moves over 10,000 entries 22 → 51–54 fps
 
+## Phase 13 checklist
+
+- [x] Markdown / Obsidian export in EngramKit (front matter, folder per project, `README.md` per project, `Inbox/`, `journal/YYYY-MM-DD.md`, `[[links]]` along the graph) and "Export to Markdown…" in Settings
+- [x] `make release`: universal (arm64 + x86_64), ad-hoc signed with the hardened runtime, zip + DMG + SHA256SUMS + notes from the changelog
+- [x] CI drafts a pre-release from `chore(release)` commits; publishing is by hand
+- [x] README rewritten for strangers (GIF, screenshots, install with the quarantine step, keyboard, build, roadmap); CONTRIBUTING; issue forms
+- [x] Screenshots and GIF from test data only (eval database, demo graph), window captures only
+- [x] 120 tests (5 for the export)
+- [ ] Mikhail's OK: publish the v0.13.0 release, merge `demo` into `main`, create `dev`
+
 ## Environments
 
 | What           | Where                                                        | Notes                                                             |
@@ -224,6 +234,11 @@ Rows before 2026-11-05 describe the web app (now on the `web-archive` branch).
 | 2026-11-06 | Journal links show only on hover or focus, and journal days appear on the timeline          | Answers the open questions from Phase 11                                                                  |
 | 2026-11-06 | Timeline appearances glow softly; big jumps along the bar appear without a flash           | Full flashes for hundreds of nodes a second whited out clusters at 16×                                   |
 | 2026-11-06 | Graph labels are Core Animation layers in the Metal view, hit-tested by the renderer        | SwiftUI re-laid out twenty labels per frame (half the frame rate at 10,000 entries) and composited light rectangles under them |
+| 2026-11-06 | Releases come from the existing `chore(release)` CI run, as a draft pre-release             | No new CI trigger; nothing goes public until it's checked; 0.x is a beta                                  |
+| 2026-11-06 | Universal app (Apple silicon and Intel), ad-hoc signed, not notarized                      | macOS 15 still runs on Intel Macs; notarizing needs a paid account                                       |
+| 2026-11-06 | Desktop Extension (`.mcpb`) moved out of Phase 13 to post-MVP                               | It bundles its own binary; the connector has to be the app's own and open the same database              |
+| 2026-11-06 | Export as one file per entry with `[[links]]` along the graph                               | Opens as an Obsidian vault with the same graph; plain Markdown everywhere else                           |
+| 2026-11-06 | README images from test data, captured per window                                           | The repository is public; a screen recording once caught another app's window                             |
 | 2026-11-06 | `get_journal` reads by date range only, no text search                                      | Enough for "how did I feel last week"; journal search for Claude is an idea for later                      |
 
 ## Open questions
@@ -242,5 +257,6 @@ Rows before 2026-11-05 describe the web app (now on the `web-archive` branch).
 - Global hotkey for capture (⌘⇧Space in the mockups) and launch at login (Mikhail, 2026-11-05: not now)
 - Windows version
 - Notarized releases and a Homebrew cask
+- A Release build switch for the database path, so install rehearsals never touch real notes
 - Journal search for Claude (a `query` on `get_journal`), e.g. "when did I last write about being tired?"
 - Journal links in the graph only on hover once there are many days (Phase 12 hover-only links may cover it)
