@@ -21,6 +21,8 @@ Engram is an open-source second brain that lives on your Mac. You think out loud
 | Surface          | What it does                                                        | Key interactions                                   |
 | ---------------- | ------------------------------------------------------------------- | -------------------------------------------------- |
 | Quick capture    | Capture field in the menu-bar popover and in the main window (⌘N)   | Type or dictate (macOS dictation), Enter to save   |
+| Today            | The day at a glance: today's entries, what waits for you, capture   | Capture, resolve "not sure", jump to a project     |
+| Journal          | One diary page per day, written with Claude or by hand              | "Write this to my journal", edit, see the day      |
 | Inbox            | Feed of recent entries; typed thoughts wait here until Claude sorts | Filter by kind, fix project, resolve "not sure"    |
 | Projects         | Project page with a live context Claude keeps updated               | Edit context, tick tasks, rename, recolor, archive |
 | Search           | ⌘K full-text search over all entries                                | Type, jump to an entry or project                  |
@@ -29,7 +31,7 @@ Engram is an open-source second brain that lives on your Mac. You think out loud
 
 There is no Ask screen: asking your brain is a conversation with Claude, which searches Engram through the connector.
 
-**Out of scope for the MVP:** a global hotkey and launch at login, Windows and Linux, an iPhone app, sync between devices, reminders and notifications, a Today screen, imports (Obsidian, Apple Notes), an in-app LLM provider. See Post-MVP.
+**Out of scope for the MVP:** a global hotkey and launch at login, Windows and Linux, an iPhone app, sync between devices, reminders and notifications, imports (Obsidian, Apple Notes), an in-app LLM provider. See Post-MVP.
 
 ## Architecture
 
@@ -178,7 +180,7 @@ create virtual table entries_fts using fts5(
 
 Tool inputs are validated in EngramKit: unknown project slugs become `needs_review`, dates must parse, content is trimmed and length-capped. The tool descriptions carry the sorting instructions the Phase 3 prompt used to hold: kinds, local time and time zone for "Friday", one entry per idea or task, the user's language.
 
-**Connecting.** Settings has "Connect to Claude Desktop", which adds `Engram --mcp` to `~/Library/Application Support/Claude/claude_desktop_config.json` (keeping every other setting and saving a backup first). "Disconnect" removes it. The entry points at the app's current location, so moving `Engram.app` means connecting again. A one-click Desktop Extension (`.mcpb`) is planned for Phase 10.
+**Connecting.** Settings has "Connect to Claude Desktop", which adds `Engram --mcp` to `~/Library/Application Support/Claude/claude_desktop_config.json` (keeping every other setting and saving a backup first). "Disconnect" removes it. The entry points at the app's current location, so moving `Engram.app` means connecting again. A one-click Desktop Extension (`.mcpb`) is planned for Phase 13.
 
 ## Build phases
 
@@ -187,8 +189,11 @@ Versions continue from the web app: each shipped phase bumps the minor version. 
 ```mermaid
 flowchart LR
   P6[6 · Native foundation] -->|OK| P7[7 · Claude connector + search] -->|OK| P8[8 · Projects + live context]
-  P8 -->|OK| P9[9 · Brain graph] -->|OK| P10[10 · Open-source launch]
+  P8 -->|OK| P9[9 · Brain graph] -->|OK| P10[10 · Redesign] -->|OK| P11[11 · Journal]
+  P11 -->|OK| P12[12 · Brain 2.0] -->|OK| P13[13 · Open-source launch]
 ```
+
+Phases 10–12 were added on 2026-11-06 after Mikhail's feedback on v0.9.1; the open-source launch moved from Phase 10 to Phase 13. Graph bug fixes found then ship first as the patch 0.9.2.
 
 **Rules for every phase:** stay inside the phase scope, keep build, lint and tests green, add tests for logic that can break silently, commit in small conventional commits, and end with a short report.
 
@@ -254,28 +259,78 @@ Done when:
 
 - [ ] 2,000 nodes stay smooth on the MacBook
 
-### Phase 10 — Open-source launch (0.10.0)
+### Phase 10 — Redesign (0.10.0)
+
+Goal: a new look for every screen: tabs across the top, a dark "constellation" style with glass panels and a cyan accent (directions B + D on the [design canvas](https://claude.ai/artifact/ST8PsDE7JDuKBF2L77DHDD)).
+
+- Mockups of every screen in the chosen style, approved by Mikhail before any code: window with tabs, Today, Journal (built in Phase 11), Inbox, Projects list, project page, Brain chrome, ⌘K, Settings, menu-bar popover, empty and error states
+- New design tokens and shared components (glass panel, tab bar, chips, buttons)
+- Window shell: tabs Today · Inbox · Projects · Brain centred in the toolbar instead of the sidebar; search and settings on the right; ⌘1…⌘5 switch tabs; the last tab is remembered, Today opens the first time
+- Today: today's entries by local day, "not sure" groups, open tasks due soon, capture field, small graph preview; the day's digest lives in EngramKit
+- Every other screen restyled; no logic changes
+
+Done when:
+
+- [ ] Every screen matches the approved mockups
+- [ ] Tab shortcuts work and the last tab is remembered
+- [ ] Today shows today's entries in local time and updates live when Claude saves
+
+### Phase 11 — Journal (0.11.0)
+
+Goal: tell Claude how the day went (or write it yourself) and keep one diary page per day.
+
+- Migration v4: `journal_days` (one row per local day: text, who wrote it last, time zone) with its own FTS5 index
+- Rules in EngramKit: Claude only appends a timestamped paragraph and never rewrites what the user wrote; empty input, overlong text and future days are rejected
+- Connector tools `write_journal` and `get_journal`; input validated in EngramKit
+- Journal tab: list of days, the day's text with editing, "on this day" with the entries and finished tasks of that day; a Today card that leads to it
+- Journal days in ⌘K search and as nodes in the Brain graph, linked to the entries of their day
+- Eval: two journal conversations added to the connector eval
+
+Done when:
+
+- [ ] "Write to my journal how the day went" in Claude Desktop shows up in the Journal tab within seconds
+- [ ] A hand edit of a day survives the next write from Claude
+- [ ] Asking Claude "how did I feel last week?" answers from the journal
+- [ ] A day is found with ⌘K and is visible in the graph
+
+### Phase 12 — Brain 2.0 (0.12.0)
+
+Goal: a graph you can explore and watch grow.
+
+- Entry kinds drawn differently (tasks as rings, done tasks dim, journal days as stars); cross-project links only on hover or focus; unfiled entries as an "Inbox" nebula
+- Filters: projects, kinds, journal days, period; ⌘F search in the graph through FTS
+- Labels placed without overlaps; clickable related entries in the side panel
+- Keyboard: Esc, arrows, +/−, 0 to fit, 1–9 to focus a project, Tab to the next neighbour
+- Timeline slider with play (1×/4×/16×): entries appear in the order they were saved
+
+Done when:
+
+- [ ] The timeline plays 2,000 entries at 60 fps
+- [ ] Filters and search narrow the graph without recomputing the layout
+- [ ] The graph can be explored with the keyboard alone
+
+### Phase 13 — Open-source launch (0.13.0)
 
 Goal: a stranger installs it and wants to star it.
 
 - README: hook, demo GIF, screenshots, features
 - Release workflow: build, ad-hoc sign, zip/DMG, attach to a GitHub Release; install steps including the quarantine command
-- Markdown / Obsidian export (one file per entry, front matter, folder per project)
+- Markdown / Obsidian export (one file per entry, front matter, folder per project; journal days as `journal/YYYY-MM-DD.md`)
 - CONTRIBUTING, issue templates, roadmap
 
 Done when:
 
 - [ ] Someone who never saw the code installs a release and saves a thought from Claude in under 10 minutes
 
-After Phase 10: merge `demo` into `main`, then `dev` for further work; 1.0.0 when Mikhail calls it stable.
+After Phase 13: merge `demo` into `main`, then `dev` for further work; 1.0.0 when Mikhail calls it stable.
 
 ## Post-MVP, in rough priority
 
-1. **Desktop Extension (`.mcpb`)** for one-click connecting, with the Phase 10 release work.
+1. **Desktop Extension (`.mcpb`)** for one-click connecting, with the Phase 13 release work.
 2. **iPhone.** Talking to Claude on the phone while the Mac is off. Open options: a scheduled Claude task that writes into a folder connected through the desktop app (scheduled tasks run in the cloud and reach connected folders only while the desktop app is open), an iCloud Drive inbox folder fed by an iOS Shortcut, or a tunnel to the connector.
 3. **Optional in-app sorting** with the user's own API key, for people who don't use Claude Desktop.
 4. **Global hotkey** and **launch at login.**
-5. **Today screen** and **reminders** for due tasks.
+5. **Reminders** for due tasks (the Today screen moved into Phase 10).
 6. **Imports.** Obsidian vault, Apple Notes.
 7. **Windows.**
 

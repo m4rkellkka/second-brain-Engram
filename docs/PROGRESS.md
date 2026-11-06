@@ -1,6 +1,6 @@
 # Progress
 
-**Current version:** 0.9.1 · **Current phase:** Phase 10 — Open-source launch · status: **not started**
+**Current version:** 0.9.1 · **Current step:** 0.9.2 graph fixes, then Phase 10 — Redesign · status: **in progress**
 
 Engram was rebuilt as a native macOS app on 2026-11-05 (see `docs/SPEC.md`). Phases 0–5 shipped the Next.js + Supabase web app, kept on the `web-archive` branch.
 
@@ -11,7 +11,10 @@ Engram was rebuilt as a native macOS app on 2026-11-05 (see `docs/SPEC.md`). Pha
 | 7     | Claude connector + search    | done (v0.7.0)          |
 | 8     | Projects & live context      | done (v0.8.0)          |
 | 9     | Brain graph                  | done (v0.9.0)          |
-| 10    | Open-source launch           | —                      |
+| 10    | Redesign                     | —                      |
+| 11    | Journal                      | —                      |
+| 12    | Brain 2.0                    | —                      |
+| 13    | Open-source launch           | —                      |
 
 ## Phase 6 checklist (done)
 
@@ -146,6 +149,12 @@ Rows before 2026-11-05 describe the web app (now on the `web-archive` branch).
 | 2026-11-05 | Graph moved from RealityKit to a small Metal renderer (v0.9.1)                           | Mikhail found it flat; glow, fog and dashes need custom shaders                                        |
 | 2026-11-05 | Shaders compile at launch from source, and a test compiles them                          | No Metal toolchain download needed to build; a shader typo can't ship silently                         |
 | 2026-11-05 | Dedicated `update_project` and `complete_task` tools                                     | Claude didn't discover `contextUpdates` inside `save_to_engram` in a real chat                          |
+| 2026-11-06 | New phases: 10 Redesign, 11 Journal, 12 Brain 2.0; launch moves to Phase 13 (0.13.0)     | Mikhail's feedback on v0.9.1; the README GIF and screenshots should show the new design                   |
+| 2026-11-06 | Graph bugs ship first as 0.9.2; new graph features wait for Phase 12                      | PATCH is fixes only; graph overlays get the new style once                                                 |
+| 2026-11-06 | Redesign: tabs across the top (direction D) in the dark glass style with cyan (direction B) | Mikhail's pick from four directions on the design canvas                                                  |
+| 2026-11-06 | Today becomes the first tab; the app reopens on the last tab                              | Mikhail's call; Today is built from data Engram already has                                               |
+| 2026-11-06 | Journal: own table, Claude appends only, shown in the tab, ⌘K and the graph               | Mikhail wants a diary he can tell Claude or write himself, linked to what happened that day               |
+| 2026-11-06 | Timeline slider ("watch the brain grow") is in Phase 12, not an idea for later            | Mikhail's call; it is also the story for the launch GIF                                                   |
 
 ## Open questions
 
@@ -155,10 +164,9 @@ Rows before 2026-11-05 describe the web app (now on the `web-archive` branch).
 
 ## Ideas for later
 
-- **Diary mode** (Mikhail, 2026-11-04): talk with Claude about how the day went and it saves a journal entry; may need a `journal` entry kind
 - Claude scheduled task triggered by API from Engram (Mikhail, 2026-11-05), once a task can reach the connector or a connected folder
 - Optional in-app sorting with the user's own API key
-- Today screen, reminders, Obsidian and Apple Notes import
+- Reminders, Obsidian and Apple Notes import
 - Global hotkey for capture (⌘⇧Space in the mockups) and launch at login (Mikhail, 2026-11-05: not now)
 - Windows version
 - Notarized releases and a Homebrew cask
