@@ -66,7 +66,7 @@ private struct Sidebar: View {
         .padding(16)
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-    .background(Theme.sidebar)
+    .background(Theme.background)
   }
 }
 

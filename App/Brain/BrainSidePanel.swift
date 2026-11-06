@@ -66,8 +66,8 @@ struct BrainSidePanel: View {
       .padding(22)
     }
     .scrollContentBackground(.hidden)
-    .background(Theme.sidebar)
-    .overlay(alignment: .leading) { Rectangle().fill(Theme.border).frame(width: 1) }
+    .glassPanel(radius: 20)
+    .padding(16)
     .task(id: PanelKey(project: projectID, changes: model.externalChanges)) {
       guard let projectID, let database = model.database else {
         page = nil

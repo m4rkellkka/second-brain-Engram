@@ -1,25 +1,30 @@
 import AppKit
 import SwiftUI
 
-/// Design tokens from the mockups. Dark theme only.
+/// Design tokens: the dark "constellation" style (near-black ground, glass
+/// panels with a cool border, cyan accent). Dark theme only.
 enum Theme {
-  static let background = Color(hex: 0x09090B)
-  static let sidebar = Color(hex: 0x0C0C0F)
-  static let surface = Color(hex: 0x121216)
-  static let surface2 = Color(hex: 0x18181D)
-  static let border = Color(hex: 0x1F1F25)
-  static let borderStrong = Color(hex: 0x2A2A32)
-  static let text = Color(hex: 0xEDEDF0)
-  static let textMuted = Color(hex: 0xA9A9B3)
-  static let textSubtle = Color(hex: 0x8E8E99)
-  static let accent = Color(hex: 0x8B9CFF)
-  static let onAccent = Color(hex: 0x0B0B12)
+  static let background = Color(hex: 0x05060B)
+  /// The tint over a glass panel's blur.
+  static let glass = Color(hex: 0x0E101C).opacity(0.78)
+  /// Quiet cards that sit on the background rather than float over it.
+  static let surface = Color.white.opacity(0.035)
+  static let surface2 = Color.white.opacity(0.06)
+  static let border = Color(hex: 0x96AAFF).opacity(0.10)
+  static let borderStrong = Color(hex: 0x96AAFF).opacity(0.20)
+  static let text = Color(hex: 0xE8ECF8)
+  static let textMuted = Color(hex: 0xA3ABC4)
+  static let textSubtle = Color(hex: 0x8790AA)
+  static let accent = Color(hex: 0x67E8F9)
+  static let onAccent = Color(hex: 0x04131A)
+  /// Selected tabs and chips: a faint wash of the accent.
+  static let accentWash = Color(hex: 0x67E8F9).opacity(0.13)
   static let danger = Color(hex: 0xF48FB1)
 
   static let controlRadius: CGFloat = 10
   static let cardRadius: CGFloat = 18
 
-  /// Kind badge colors, from the project palette.
+  /// Kind colors, from the project palette.
   static func kindColor(_ kind: String) -> Color {
     switch kind {
     case "idea": Color(hex: 0xB79CFF)

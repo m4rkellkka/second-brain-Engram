@@ -5,6 +5,9 @@ struct CaptureBox: View {
   @Environment(AppModel.self) private var model
   var editorHeight: CGFloat = 64
   var focusWhenWindowActivates = false
+  /// On Today the field is the main thing on the page, so it gets an
+  /// accent border.
+  var prominent = false
 
   @State private var text = ""
   @State private var error: String?
@@ -45,24 +48,14 @@ struct CaptureBox: View {
             .foregroundStyle(Theme.textSubtle)
         }
         Spacer()
-        Button(action: save) {
-          Text("Save")
-            .font(.geist(13, .medium))
-            .foregroundStyle(isEmpty ? Theme.textSubtle : Theme.onAccent)
-            .padding(.horizontal, 14)
-            .frame(height: 30)
-            .background(
-              RoundedRectangle(cornerRadius: Theme.controlRadius)
-                .fill(isEmpty ? Theme.surface2 : Theme.accent)
-            )
-        }
-        .buttonStyle(.plain)
-        .disabled(isEmpty)
+        Button("Save", action: save)
+          .buttonStyle(AccentButtonStyle(height: 30))
+          .disabled(isEmpty)
       }
     }
-    .padding(14)
-    .background(RoundedRectangle(cornerRadius: Theme.cardRadius).fill(Theme.surface))
-    .overlay(RoundedRectangle(cornerRadius: Theme.cardRadius).stroke(Theme.border))
+    .padding(.horizontal, 18)
+    .padding(.vertical, 16)
+    .glassPanel(border: prominent ? Theme.accent.opacity(0.28) : Theme.borderStrong.opacity(0.7))
     .onChange(of: text) {
       if !text.isEmpty { error = nil }
     }

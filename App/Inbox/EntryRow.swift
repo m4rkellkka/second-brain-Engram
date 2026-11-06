@@ -107,20 +107,6 @@ private struct NotSureBar: View {
   }
 }
 
-struct KindBadge: View {
-  let kind: EntryKind
-
-  var body: some View {
-    let color = Theme.kindColor(kind.rawValue)
-    Text(kind.rawValue.uppercased())
-      .font(.geistMono(10.5, .medium))
-      .foregroundStyle(color)
-      .padding(.horizontal, 8)
-      .frame(height: 20)
-      .background(Capsule().fill(color.opacity(0.12)))
-  }
-}
-
 /// The kind badge, clickable to fix the kind.
 private struct KindMenu: View {
   let kind: EntryKind
@@ -181,26 +167,5 @@ private struct Chip: View {
       .padding(.horizontal, 10)
       .frame(height: 26)
       .background(Capsule().fill(Theme.surface2))
-  }
-}
-
-struct SmallButton: View {
-  let title: String
-  let symbol: String
-  let action: () -> Void
-
-  var body: some View {
-    Button(action: action) {
-      Label(title, systemImage: symbol)
-        .font(.geist(12, .medium))
-        .foregroundStyle(Theme.text)
-        .padding(.horizontal, 10)
-        .frame(height: 28)
-        .background(Capsule().fill(Theme.surface2))
-        .overlay(Capsule().stroke(Theme.borderStrong))
-        .contentShape(Capsule())
-    }
-    .buttonStyle(.plain)
-    .focusEffectDisabled()
   }
 }
