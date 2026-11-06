@@ -141,7 +141,10 @@ public enum GraphShaders {
         core = 1.0 - smoothstep(0.1, 0.24, abs(d - 0.78));
         glow *= 0.6;
       }
-      float a = (core + glow) * in.color.a;
+      // Fade to nothing before the quad's edge, so hundreds of overlapping
+      // glows never add up to a visible square, and star rays end softly.
+      float edge = 1.0 - smoothstep(2.2, 3.0, max(abs(p.x), abs(p.y)));
+      float a = (core + glow) * edge * in.color.a;
       float3 rgb = mix(in.color.rgb, float3(1.0), core * 0.2);  // a slightly hot centre
       return float4(rgb * a, a);
     }

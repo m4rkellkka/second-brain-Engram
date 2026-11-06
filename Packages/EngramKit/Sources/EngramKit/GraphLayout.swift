@@ -85,8 +85,8 @@ public struct GraphLayout: Sendable {
     return GraphLayout(nodePositions: positions, hubs: hubs, radius: radius)
   }
 
-  /// Journal days on a slow spiral above the clusters, one turn a month,
-  /// oldest first; each turn a little higher than the one before.
+  /// Journal days on a slightly tilted spiral above the clusters, one turn
+  /// a month, oldest first; each turn a little wider than the one before.
   static func placeJournal(
     _ days: [Int], of graph: GraphSnapshot, ring: Float, into positions: inout [SIMD3<Float>]
   ) {
@@ -98,9 +98,10 @@ public struct GraphLayout: Sendable {
     for index in sorted {
       let n = Float((graph.nodes[index].createdAt.timeIntervalSince(first) / 86_400).rounded())
       let angle = n / perTurn * 2 * .pi
-      let radius = ring * 0.75 + 1
+      let radius = ring * 0.55 + 1 + n / perTurn * 0.9
+      // Tilted a little, so seen from the side it still reads as a loop.
       positions[index] = SIMD3(
-        cos(angle) * radius, ring * 0.9 + 1.5 + n / perTurn * 0.8, sin(angle) * radius)
+        cos(angle) * radius, ring * 0.9 + 1.5 + sin(angle) * radius * 0.3, sin(angle) * radius)
     }
   }
 
