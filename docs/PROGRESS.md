@@ -1,6 +1,6 @@
 # Progress
 
-**Current version:** 0.10.0 · **Current phase:** Phase 11 — Journal · status: **not started**
+**Current version:** 0.11.0 · **Current phase:** Phase 12 — Brain 2.0 · status: **not started**
 
 Engram was rebuilt as a native macOS app on 2026-11-05 (see `docs/SPEC.md`). Phases 0–5 shipped the Next.js + Supabase web app, kept on the `web-archive` branch.
 
@@ -12,7 +12,7 @@ Engram was rebuilt as a native macOS app on 2026-11-05 (see `docs/SPEC.md`). Pha
 | 8     | Projects & live context      | done (v0.8.0)          |
 | 9     | Brain graph                  | done (v0.9.0)          |
 | 10    | Redesign                     | done (v0.10.0)         |
-| 11    | Journal                      | —                      |
+| 11    | Journal                      | done (v0.11.0)         |
 | 12    | Brain 2.0                    | —                      |
 | 13    | Open-source launch           | —                      |
 
@@ -88,6 +88,18 @@ Engram was rebuilt as a native macOS app on 2026-11-05 (see `docs/SPEC.md`). Pha
 - [x] Projects as cards with "+N today"; project page in a two-column grid; "Show in Brain"
 - [x] Brain chrome on glass, project chips; ⌘K with project matches and highlights; Settings → About; menu-bar count
 - [x] 85 tests (Today digest with local midnight in UTC+3, waiting count, today's count on project cards)
+
+## Phase 11 checklist (done)
+
+- [x] Migration v4: `journal_days` + `journal_paragraphs` with their own FTS5 index ("ё" folded)
+- [x] Rules: Claude only appends a paragraph; repeats skipped; empty, overlong (> 4,000) and future days rejected; past days allowed
+- [x] Connector tools `write_journal` and `get_journal` (last 7 days by default, at most 62)
+- [x] Journal tab after Today (⌘2): days by month, paragraphs with time and author, click to edit, add field, "On this day"
+- [x] Past days written quietly: any listed day is editable, "Go to date…" in the ⋯ menu, "added later" on late paragraphs
+- [x] Today card, ⌘K section, journal days as pale nodes in the Brain linked to that day's entries
+- [x] 108 tests (14 journal + 1 connector); eval: 2 journal conversations and a "how did I feel" question
+- [x] Eval on 2026-11-06 (Sonnet, `claude -p`): "write to my journal" lands on today, "for yesterday" on the 5th, "how did I feel last week?" answered from 5 journal days; the first run also wrote an unasked journal paragraph for "save all this to Engram", fixed in the tool description and re-checked
+- [x] CHANGELOG, README, release v0.11.0
 
 ## Environments
 
@@ -179,6 +191,13 @@ Rows before 2026-11-05 describe the web app (now on the `web-archive` branch).
 | 2026-11-06 | Glass = system `.ultraThinMaterial` under a dark tint                                     | Native, cheap, and it blurs the Metal graph under the Brain's panels                                       |
 | 2026-11-06 | Today's mini graph drawn with SwiftUI Canvas, not Metal                                   | The tab opens instantly and needs no second renderer                                                       |
 | 2026-11-06 | "Try again" on the error screen left out                                                  | The database opens once at launch; a retry means relaunching, not worth it now                             |
+| 2026-11-06 | Journal tab right after Today (⌘2)                                                         | Mikhail's call: the diary is a daily thing, next to the day at a glance                                    |
+| 2026-11-06 | Journal day stored as paragraphs (author, edit time), not one text per day                 | The approved mockup labels each paragraph; and Claude can only insert, so the user's text is safe by design |
+| 2026-11-06 | Past days can be written to (by Claude and by hand), future days can't; kept low-key       | Mikhail: "запиши за вчера" should work, but not as a prominent feature                                      |
+| 2026-11-06 | No "Edit" button: click a paragraph to edit it, clear it to remove it                      | One mode less, keyboard-friendly (Return saves, Esc cancels)                                              |
+| 2026-11-06 | Journal days on a spiral above the clusters (a turn a month); their links pull on nothing  | Deterministic like the rest of the layout, and project clusters keep their shape                          |
+| 2026-11-06 | `write_journal` only on an explicit journal/diary request, never for "save this to Engram" | Eval: Claude added a diary paragraph nobody asked for when a save talked about the day                     |
+| 2026-11-06 | `get_journal` reads by date range only, no text search                                      | Enough for "how did I feel last week"; journal search for Claude is an idea for later                      |
 
 ## Open questions
 
@@ -194,3 +213,5 @@ Rows before 2026-11-05 describe the web app (now on the `web-archive` branch).
 - Global hotkey for capture (⌘⇧Space in the mockups) and launch at login (Mikhail, 2026-11-05: not now)
 - Windows version
 - Notarized releases and a Homebrew cask
+- Journal search for Claude (a `query` on `get_journal`), e.g. "when did I last write about being tired?"
+- Journal links in the graph only on hover once there are many days (Phase 12 hover-only links may cover it)

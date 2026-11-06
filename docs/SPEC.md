@@ -22,10 +22,10 @@ Engram is an open-source second brain that lives on your Mac. You think out loud
 | ---------------- | ------------------------------------------------------------------- | -------------------------------------------------- |
 | Quick capture    | Capture field in the menu-bar popover and in the main window (⌘N)   | Type or dictate (macOS dictation), Enter to save   |
 | Today            | The day at a glance: today's entries, what waits for you, capture   | Capture, resolve "not sure", jump to a project     |
-| Journal          | One diary page per day, written with Claude or by hand              | "Write this to my journal", edit, see the day      |
+| Journal          | One diary page per day, written with Claude or by hand              | "Write this to my journal", edit, see the day, write about an earlier day |
 | Inbox            | Feed of recent entries; typed thoughts wait here until Claude sorts | Filter by kind, fix project, resolve "not sure"    |
 | Projects         | Project page with a live context Claude keeps updated               | Edit context, tick tasks, rename, recolor, archive |
-| Search           | ⌘K full-text search over all entries                                | Type, jump to an entry or project                  |
+| Search           | ⌘K full-text search over all entries and journal days               | Type, jump to an entry, project or day             |
 | Brain            | 3D graph of all entries, clustered by project                       | Rotate, hover, click a node to open its project    |
 | Claude connector | MCP server that Claude Desktop uses to save and read your brain     | "Save this to Engram", "what's open on project X?" |
 
@@ -150,9 +150,31 @@ create virtual table entries_fts using fts5(
   content, keywords, content='entries', content_rowid='rowid',
   tokenize='unicode61 remove_diacritics 2'
 );
+
+-- Phase 11: the journal. One row per local day; the text is paragraphs,
+-- so Claude can add without ever rewriting what the user wrote.
+create table journal_days (
+  day text primary key,                  -- local date, 'YYYY-MM-DD'
+  time_zone text not null,               -- where the day was first written
+  created_at text not null,
+  updated_at text not null
+);
+
+create table journal_paragraphs (
+  id text primary key,
+  day text not null references journal_days on delete cascade,
+  author text not null check (author in ('claude', 'user')),  -- who wrote it first
+  text text not null,
+  edited_at text,                        -- last hand edit, if any
+  created_at text not null
+);
+
+create virtual table journal_fts using fts5(text, tokenize='unicode61 remove_diacritics 2');
 ```
 
 **Indexes.** `entries (created_at desc)` for the Inbox, `entries (project_id)`, `captures (status)` for unsorted thoughts, unique `captures (content_hash) where source = 'claude'` (typing the same thought twice is fine), unique `project_context_items (project_id, section, lower(text))` against duplicates.
+
+**Journal rules.** Claude only inserts paragraphs (`write_journal`), for today or an earlier day, never a future one; an identical paragraph from Claude on the same day is skipped. The user can add, edit and remove any paragraph; an edited Claude paragraph shows "edited by you". Removing a day's last paragraph removes the day.
 
 **Context rules (unchanged from v0.5.0).** Claude appends to lists and proposes summary/status changes; anything the user edited by hand (`source = 'user'`) wins and is never overwritten. Every AI context item keeps the entries it came from, so the page can show "from N notes".
 
@@ -177,6 +199,8 @@ create virtual table entries_fts using fts5(
 | `complete_task`       | Tick or untick a task by id |
 | `list_unsorted`       | Typed thoughts waiting to be sorted                                                                                                                                                               |
 | `sort_capture`        | File one unsorted capture, with the same entry shape as `save_to_engram`                                                                                                                          |
+| `write_journal`       | Add one first-person paragraph to a journal day: `text`, optional `date` (YYYY-MM-DD, today by default, no future days) |
+| `get_journal`         | Journal days in a range (`from`, `to`; last 7 days by default, at most 62), with each paragraph's author and local time |
 
 Tool inputs are validated in EngramKit: unknown project slugs become `needs_review`, dates must parse, content is trimmed and length-capped. The tool descriptions carry the sorting instructions the Phase 3 prompt used to hold: kinds, local time and time zone for "Friday", one entry per idea or task, the user's language.
 
@@ -265,7 +289,7 @@ Goal: a new look for every screen: tabs across the top, a dark "constellation" s
 
 - Mockups of every screen in the chosen style, approved by Mikhail before any code: window with tabs, Today, Journal (built in Phase 11), Inbox, Projects list, project page, Brain chrome, ⌘K, Settings, menu-bar popover, empty and error states
 - New design tokens and shared components (glass panel, tab bar, chips, buttons)
-- Window shell: tabs Today · Inbox · Projects · Brain centred in the toolbar instead of the sidebar; search and settings on the right; ⌘1…⌘5 switch tabs; the last tab is remembered, Today opens the first time
+- Window shell: tabs Today · Inbox · Projects · Brain (Journal joins after Today in Phase 11) centred in the toolbar instead of the sidebar; search and settings on the right; ⌘1…⌘5 switch tabs; the last tab is remembered, Today opens the first time
 - Today: today's entries by local day, "not sure" groups, open tasks due soon, capture field, small graph preview; the day's digest lives in EngramKit
 - Every other screen restyled; no logic changes
 
@@ -279,7 +303,7 @@ Done when:
 
 Goal: tell Claude how the day went (or write it yourself) and keep one diary page per day.
 
-- Migration v4: `journal_days` (one row per local day: text, who wrote it last, time zone) with its own FTS5 index
+- Migration v4: `journal_days` (one row per local day, with its time zone) and `journal_paragraphs` (author, text, last hand edit) with its own FTS5 index; paragraphs instead of one text per day so Claude's appends can never touch the user's text
 - Rules in EngramKit: Claude only appends a timestamped paragraph and never rewrites what the user wrote; empty input, overlong text and future days are rejected
 - Connector tools `write_journal` and `get_journal`; input validated in EngramKit
 - Journal tab: list of days, the day's text with editing, "on this day" with the entries and finished tasks of that day; a Today card that leads to it
