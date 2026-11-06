@@ -75,6 +75,7 @@ struct TodayView: View {
   private var side: some View {
     VStack(alignment: .leading, spacing: 16) {
       if digest.waiting > 0 { WaitingCard(digest: digest) }
+      if !isFirstLaunch { JournalCard(paragraphs: digest.journal) }
       if !digest.dueSoon.isEmpty { DueSoonCard(tasks: digest.dueSoon) }
       if !digest.projects.isEmpty { ProjectsCard(projects: digest.projects) }
       if digest.totalEntries > 0 {
@@ -255,6 +256,60 @@ private struct WaitingCard: View {
     .padding(16)
     .frame(maxWidth: .infinity, alignment: .leading)
     .glassPanel(border: Theme.accent.opacity(0.4), dashed: true)
+  }
+}
+
+/// Today's journal page in a few lines; a click opens it.
+private struct JournalCard: View {
+  @Environment(AppModel.self) private var model
+  let paragraphs: [JournalParagraph]
+
+  var body: some View {
+    Button {
+      model.openJournal()
+    } label: {
+      VStack(alignment: .leading, spacing: 8) {
+        HStack {
+          SectionLabel("Journal")
+          Spacer()
+          Image(systemName: "arrow.right")
+            .font(.system(size: 11, weight: .medium))
+            .foregroundStyle(Theme.textSubtle)
+        }
+        if let first = paragraphs.first {
+          Text(first.text)
+            .font(.geist(13))
+            .foregroundStyle(Theme.text)
+            .lineSpacing(3)
+            .lineLimit(3)
+            .multilineTextAlignment(.leading)
+          Text(byline)
+            .font(.geist(12))
+            .foregroundStyle(Theme.textSubtle)
+        } else {
+          Text("Nothing yet today. Tell Claude how the day went, or write it yourself.")
+            .font(.geist(13))
+            .foregroundStyle(Theme.textMuted)
+            .multilineTextAlignment(.leading)
+            .fixedSize(horizontal: false, vertical: true)
+        }
+      }
+      .padding(16)
+      .frame(maxWidth: .infinity, alignment: .leading)
+      .glassPanel()
+      .contentShape(Rectangle())
+    }
+    .buttonStyle(.plain)
+    .focusEffectDisabled()
+    .accessibilityLabel("Open today's journal")
+  }
+
+  private var byline: String {
+    let count = paragraphs.count
+    let authors = Set(paragraphs.map(\.author))
+    let who =
+      authors == [.claude] ? "from Claude" : authors == [.user] ? "by you" : "with Claude"
+    return "\(count) paragraph\(count == 1 ? "" : "s") · \(who)"
   }
 }
 
