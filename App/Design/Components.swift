@@ -160,6 +160,20 @@ struct KindBadge: View {
   }
 }
 
+/// "journal · 5 Nov" in the pale text color, beside kind badges.
+struct JournalBadge: View {
+  let date: Date
+
+  var body: some View {
+    Text("journal · " + date.formatted(.dateTime.day().month(.abbreviated)))
+      .font(.geistMono(11, .medium))
+      .foregroundStyle(Theme.text)
+      .padding(.horizontal, 8)
+      .frame(height: 20)
+      .background(Capsule().fill(Theme.text.opacity(0.1)))
+  }
+}
+
 /// A project's color dot and name.
 struct ProjectTag: View {
   let project: Project

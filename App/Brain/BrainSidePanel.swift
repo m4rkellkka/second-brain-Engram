@@ -38,7 +38,16 @@ struct BrainSidePanel: View {
         }
         .padding(.bottom, -12)
 
-        if let node {
+        if let node, let day = node.journalDay {
+          JournalDayCard(node: node)
+          Button {
+            model.openJournal(day == JournalDate.key(Date()) ? nil : day)
+          } label: {
+            Text("Open in Journal").frame(maxWidth: .infinity)
+          }
+          .buttonStyle(AccentButtonStyle(height: 34))
+          .focusEffectDisabled()
+        } else if let node {
           EntryCard(node: node)
         }
 
@@ -51,7 +60,7 @@ struct BrainSidePanel: View {
           }
           .buttonStyle(AccentButtonStyle(height: 34))
           .focusEffectDisabled()
-        } else if projectID == nil {
+        } else if projectID == nil, node?.isJournal != true {
           Text("Not filed in a project yet. Pick one in the Inbox.")
             .font(.geist(12.5))
             .foregroundStyle(Theme.textSubtle)
@@ -103,6 +112,28 @@ private struct EntryCard: View {
         .fixedSize(horizontal: false, vertical: true)
     }
     .padding(14)
+    .background(RoundedRectangle(cornerRadius: Theme.controlRadius).fill(Theme.surface))
+    .overlay(RoundedRectangle(cornerRadius: Theme.controlRadius).stroke(Theme.border))
+  }
+}
+
+private struct JournalDayCard: View {
+  let node: GraphSnapshot.Node
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 8) {
+      JournalBadge(date: node.createdAt)
+      Text(node.createdAt.formatted(.dateTime.weekday(.wide).day().month(.wide)))
+        .font(.geist(18, .semibold))
+        .foregroundStyle(Theme.text)
+      Text(node.content)
+        .font(.geist(14))
+        .foregroundStyle(Theme.textMuted)
+        .lineSpacing(3)
+        .fixedSize(horizontal: false, vertical: true)
+    }
+    .padding(14)
+    .frame(maxWidth: .infinity, alignment: .leading)
     .background(RoundedRectangle(cornerRadius: Theme.controlRadius).fill(Theme.surface))
     .overlay(RoundedRectangle(cornerRadius: Theme.controlRadius).stroke(Theme.border))
   }

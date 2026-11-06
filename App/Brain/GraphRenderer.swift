@@ -96,6 +96,8 @@ final class GraphRenderer: NSObject, MTKViewDelegate {
   private var backingScale: Float = 2
 
   static let unfiledColor = SIMD3<Float>(0.56, 0.56, 0.6)
+  /// Journal days: the pale text color, so they read apart from projects.
+  static let journalColor = SIMD3<Float>(0xE8, 0xEC, 0xF8) / 255
   static let accent = SIMD3<Float>(0x67, 0xE8, 0xF9) / 255
   /// Hub core and halo radii in world units.
   private static let hubRadius: Float = 0.42
@@ -387,7 +389,9 @@ final class GraphRenderer: NSObject, MTKViewDelegate {
     sprites.reserveCapacity(
       stars.count + snapshot.nodes.count + 2 * hubPositions.count + pulses.count)
     for (i, node) in snapshot.nodes.enumerated() {
-      let color = node.projectID.flatMap { colors[$0] } ?? Self.unfiledColor
+      let color =
+        node.isJournal
+        ? Self.journalColor : node.projectID.flatMap { colors[$0] } ?? Self.unfiledColor
       var glow = baseGlow[i] * weights[i]
       var size = baseSize[i] * (weights[i] > 1.5 ? 1.35 : 1)
       if let flash = flashes[node.id] {
@@ -447,7 +451,8 @@ final class GraphRenderer: NSObject, MTKViewDelegate {
     // Keyword links: project color inside a project, white dashes across.
     for (i, link) in snapshot.links.enumerated() {
       let from = snapshot.nodes[link.source], to = snapshot.nodes[link.target]
-      let inside = from.projectID == to.projectID
+      // A journal day's links go across projects, like cross-project links.
+      let inside = from.projectID == to.projectID && !from.isJournal && !to.isJournal
       let color =
         inside ? (from.projectID.flatMap { colors[$0] } ?? Self.unfiledColor) : SIMD3(1, 1, 1)
       let weight = min(weights[link.source], weights[link.target])

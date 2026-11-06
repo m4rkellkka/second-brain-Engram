@@ -342,7 +342,7 @@ private struct Header: View {
     VStack(alignment: .leading, spacing: 4) {
       Text("Your brain").font(.geist(18, .semibold)).foregroundStyle(Theme.text)
       Text(
-        "\(graph.nodes.count) entries · \(graph.links.count) links · \(graph.projects.count) projects"
+        "\(graph.nodes.count(where: { !$0.isJournal })) entries · \(graph.links.count) links · \(graph.projects.count) projects"
       )
       .font(.geistMono(11))
       .foregroundStyle(Theme.textSubtle)
@@ -384,7 +384,11 @@ private struct HoverLabel: View {
   var body: some View {
     VStack(alignment: .leading, spacing: 5) {
       HStack(spacing: 6) {
-        KindBadge(kind: node.kind)
+        if node.isJournal {
+          JournalBadge(date: node.createdAt)
+        } else {
+          KindBadge(kind: node.kind)
+        }
         if let project {
           Circle().fill(Color(hexString: project.color)).frame(width: 6, height: 6)
           Text(project.name).font(.geist(11.5)).foregroundStyle(Theme.textMuted)
