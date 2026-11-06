@@ -10,14 +10,29 @@ public enum GraphShaders {
   public struct Sprite: Sendable, Equatable {
     public var position: SIMD4<Float>  // xyz, world radius
     public var color: SIMD4<Float>  // rgb, intensity
-    /// x: the largest radius in pixels (0 keeps the default cap for dots).
+    /// x: the largest radius in pixels (0 keeps the default cap for dots);
+    /// y: the shape.
     public var style: SIMD4<Float>
 
-    public init(position: SIMD4<Float>, color: SIMD4<Float>, maxPixels: Float = 0) {
+    public init(
+      position: SIMD4<Float>, color: SIMD4<Float>, maxPixels: Float = 0, shape: Shape = .dot
+    ) {
       self.position = position
       self.color = color
-      self.style = [maxPixels, 0, 0, 0]
+      self.style = [maxPixels, shape.rawValue, 0, 0]
     }
+  }
+
+  /// How a sprite is drawn.
+  public enum Shape: Float, Sendable {
+    /// A round dot with a glow: ideas, notes, links, hubs.
+    case dot = 0
+    /// A ring: tasks.
+    case ring = 1
+    /// A four-pointed star: journal days.
+    case star = 2
+    /// A soft cloud without a core: the Inbox nebula.
+    case nebula = 3
   }
 
   /// One line segment, laid out exactly like `Line` in the shader.
@@ -46,7 +61,7 @@ public enum GraphShaders {
     struct Sprite {
       float4 position;   // xyz, world radius
       float4 color;      // rgb, intensity
-      float4 style;      // x = largest radius in pixels (0 = viewport.w)
+      float4 style;      // x = largest radius in pixels (0 = viewport.w), y = shape
     };
 
     struct Line {
@@ -59,6 +74,7 @@ public enum GraphShaders {
       float4 position [[position]];
       float2 uv;
       float4 color;
+      float shape;       // 0 dot, 1 ring, 2 star, 3 nebula
     };
 
     struct LineOut {
@@ -101,13 +117,30 @@ public enum GraphShaders {
       out.position = clip;
       out.uv = corner;
       out.color = float4(s.color.rgb, s.color.a * fogFactor(clip.w, u.fog));
+      out.shape = s.style.y;
       return out;
     }
 
     fragment float4 spriteFragment(SpriteOut in [[stage_in]]) {
-      float d = length(in.uv) * glowScale;           // 1.0 = edge of the dot
+      float2 p = in.uv * glowScale;
+      float d = length(p);                           // 1.0 = edge of the dot
       float core = 1.0 - smoothstep(0.75, 1.0, d);
       float glow = exp(-d * d * 0.55) * 0.45;
+      if (in.shape > 2.5) {
+        // Nebula: only the soft falloff, no bright core.
+        core = 0.0;
+        glow = exp(-d * d * 0.3) * 0.5;
+      } else if (in.shape > 1.5) {
+        // Star: a small core with four thin rays.
+        core = 1.0 - smoothstep(0.3, 0.55, d);
+        float2 q = abs(p);
+        float rays = exp(-q.x * 7.0) * exp(-q.y * 1.1) + exp(-q.y * 7.0) * exp(-q.x * 1.1);
+        glow = glow * 0.7 + rays * 0.9;
+      } else if (in.shape > 0.5) {
+        // Ring: a thin circle with a dark middle.
+        core = 1.0 - smoothstep(0.1, 0.24, abs(d - 0.78));
+        glow *= 0.6;
+      }
       float a = (core + glow) * in.color.a;
       float3 rgb = mix(in.color.rgb, float3(1.0), core * 0.2);  // a slightly hot centre
       return float4(rgb * a, a);

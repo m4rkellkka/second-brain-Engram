@@ -15,6 +15,12 @@ import simd
     }
   }
 
+  @Test func shapesTravelInTheStyle() {
+    let star = GraphShaders.Sprite(position: .zero, color: .zero, shape: .star)
+    #expect(star.style.y == 2)
+    #expect(GraphShaders.Sprite(position: .zero, color: .zero).style.y == 0)
+  }
+
   /// The Swift structs are copied byte for byte into Metal buffers, so
   /// their size must match the shader's (three float4 each).
   @Test func instanceLayoutsMatchTheShader() {
