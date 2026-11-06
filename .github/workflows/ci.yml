@@ -30,7 +30,7 @@ jobs:
         run: make build
 
       # `chore(release): vX.Y.Z` also packs the app and drafts a GitHub
-      # Release for the tag. A draft is visible only to collaborators; it
+      # Release for the tag (a pre-release while the version is 0.x). A draft is visible only to collaborators; it
       # is published by hand once the release is checked.
       - name: Pack release
         if: startsWith(github.event.head_commit.message, 'chore(release)')
@@ -46,6 +46,9 @@ jobs:
           if gh release view "v$VERSION" >/dev/null 2>&1; then
             gh release upload "v$VERSION" $FILES --clobber
           else
-            gh release create "v$VERSION" $FILES --draft --prerelease \
+            # 0.x versions are betas; from 1.0.0 on, releases are stable.
+            PRERELEASE=""
+            case "$VERSION" in 0.*) PRERELEASE="--prerelease" ;; esac
+            gh release create "v$VERSION" $FILES --draft $PRERELEASE \
               --title "Engram $VERSION" --notes-file build/release/notes.md --target "$GITHUB_SHA"
           fi
