@@ -31,7 +31,7 @@ import simd
 
   @Test func snapshotSkipsArchivedProjectsAndMapsLinks() throws {
     let db = try seeded()
-    let graph = try db.writer.read(AppDatabase.graph)
+    let graph = try db.writer.read { try AppDatabase.graph($0) }
     #expect(graph.nodes.map(\.content) == ["A", "B", "C", "D"])
     #expect(graph.projects.map(\.name) == ["Engram", "Tamam"])
     // The link to the archived entry is dropped with it.
@@ -42,7 +42,7 @@ import simd
   }
 
   @Test func layoutIsDeterministicAndFinite() throws {
-    let graph = try seeded().writer.read(AppDatabase.graph)
+    let graph = try seeded().writer.read { try AppDatabase.graph($0) }
     let first = GraphLayout.compute(graph)
     let second = GraphLayout.compute(graph)
     #expect(first.nodePositions == second.nodePositions)

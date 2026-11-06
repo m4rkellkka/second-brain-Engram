@@ -11,6 +11,7 @@ public enum EngramError: Error, Equatable, Sendable {
   case textTooLong(limit: Int)
   case unknownColor
   case duplicateItem
+  case futureDay
 
   public var message: String {
     switch self {
@@ -25,6 +26,7 @@ public enum EngramError: Error, Equatable, Sendable {
     case .textTooLong(let limit): "Keep it under \(limit) characters."
     case .unknownColor: "Pick one of the project colors."
     case .duplicateItem: "That item is already on the page."
+    case .futureDay: "That day hasn't come yet."
     }
   }
 }

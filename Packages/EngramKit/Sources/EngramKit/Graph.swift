@@ -11,6 +11,10 @@ public struct GraphSnapshot: Hashable, Sendable {
     public var content: String
     public var done: Bool = false
     public var createdAt: Date = .distantPast
+    /// Set for a journal day (`2026-11-05`) instead of an entry.
+    public var journalDay: String? = nil
+
+    public var isJournal: Bool { journalDay != nil }
   }
 
   public struct Link: Hashable, Sendable {
@@ -28,7 +32,11 @@ public struct GraphSnapshot: Hashable, Sendable {
 }
 
 extension AppDatabase {
-  public static func graph(_ db: Database) throws -> GraphSnapshot {
+  /// The id of the graph node for a journal day.
+  public static func journalNodeID(_ day: String) -> String { "journal:\(day)" }
+
+  /// The graph, with each journal day linked to the entries saved that day.
+  public static func graph(_ db: Database, calendar: Calendar = .current) throws -> GraphSnapshot {
     let projects = try fetchActiveProjects(db)
     let active = Set(projects.map(\.id))
     let rows = try Row.fetchAll(
@@ -50,16 +58,42 @@ extension AppDatabase {
           done: (row["done_at"] as String?) != nil, createdAt: row["created_at"]))
     }
     let index = Dictionary(uniqueKeysWithValues: nodes.enumerated().map { ($1.id, $0) })
-    let links = try Row.fetchAll(db, sql: "select source_id, target_id, weight from entry_links")
+    var links = try Row.fetchAll(db, sql: "select source_id, target_id, weight from entry_links")
       .compactMap { row -> GraphSnapshot.Link? in
         guard let s = index[row["source_id"] as String], let t = index[row["target_id"] as String]
         else { return nil }
         return .init(source: s, target: t, weight: row["weight"])
       }
+
+    let entryCount = nodes.count
+    var journalIndex: [String: Int] = [:]
+    for row in try Row.fetchAll(
+      db,
+      sql: """
+        select d.day, d.created_at,
+          (select substr(p.text, 1, 160) from journal_paragraphs p where p.day = d.day
+           order by p.created_at, p.rowid limit 1) as preview
+        from journal_days d order by d.day
+        """)
+    {
+      let day: String = row["day"]
+      journalIndex[day] = nodes.count
+      nodes.append(
+        .init(
+          id: journalNodeID(day), projectID: nil, kind: .note,
+          content: row["preview"] ?? "",
+          createdAt: JournalDate.start(of: day, calendar: calendar)
+            ?? row["created_at"], journalDay: day))
+    }
+    for i in 0..<entryCount {
+      if let day = journalIndex[JournalDate.key(nodes[i].createdAt, calendar: calendar)] {
+        links.append(.init(source: day, target: i, weight: 0.5))
+      }
+    }
     return GraphSnapshot(projects: projects, nodes: nodes, links: links)
   }
 
-  public func graphUpdates() -> AsyncValueObservation<GraphSnapshot> {
-    ValueObservation.tracking(Self.graph).values(in: writer)
+  public func graphUpdates(calendar: Calendar = .current) -> AsyncValueObservation<GraphSnapshot> {
+    ValueObservation.tracking { db in try Self.graph(db, calendar: calendar) }.values(in: writer)
   }
 }

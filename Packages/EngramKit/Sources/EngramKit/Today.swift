@@ -34,6 +34,8 @@ public struct TodayDigest: Hashable, Sendable {
   public var projects: [ProjectActivity]
   /// Every entry the graph shows (archived projects left out).
   public var totalEntries: Int
+  /// Today's journal paragraphs, oldest first.
+  public var journal: [JournalParagraph] = []
 
   public static let empty = TodayDigest(
     day: .distantPast, entries: [], savedByClaude: 0, notSure: [], unsorted: 0, dueSoon: [],
@@ -132,7 +134,8 @@ extension AppDatabase {
       day: start, entries: entries,
       savedByClaude: entries.filter { $0.capture?.source == .claude }.count,
       notSure: order.compactMap { groups[$0] }, unsorted: unsorted, dueSoon: dueSoon,
-      projects: projects, totalEntries: totalEntries)
+      projects: projects, totalEntries: totalEntries,
+      journal: try paragraphs(db, day: JournalDate.key(now, calendar: calendar)))
   }
 
   /// How many things wait for the user: "not sure" entries plus typed

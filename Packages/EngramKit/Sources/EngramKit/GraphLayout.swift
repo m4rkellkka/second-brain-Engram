@@ -24,7 +24,14 @@ public struct GraphLayout: Sendable {
 
   public static func compute(_ graph: GraphSnapshot) -> GraphLayout {
     var members: [String?: [Int]] = [:]
-    for (i, node) in graph.nodes.enumerated() { members[node.projectID, default: []].append(i) }
+    var journal: [Int] = []
+    for (i, node) in graph.nodes.enumerated() {
+      if node.isJournal {
+        journal.append(i)
+      } else {
+        members[node.projectID, default: []].append(i)
+      }
+    }
 
     func clusterRadius(_ count: Int) -> Float {
       1.1 * Float(sizeStep(count)).squareRoot().squareRoot() * 1.4
@@ -58,6 +65,8 @@ public struct GraphLayout: Sendable {
     for _ in 0..<24 {
       for link in graph.links {
         let a = link.source, b = link.target
+        // Journal days sit on their own arc and pull on nothing.
+        if graph.nodes[a].isJournal || graph.nodes[b].isJournal { continue }
         let same = graph.nodes[a].projectID == graph.nodes[b].projectID
         let delta = positions[b] - positions[a]
         let length = simd_length(delta)
@@ -70,8 +79,29 @@ public struct GraphLayout: Sendable {
       }
     }
 
+    placeJournal(journal, of: graph, ring: ring, into: &positions)
+
     let radius = max(positions.map { simd_length($0) }.max() ?? 1, ring, 1) + 1
     return GraphLayout(nodePositions: positions, hubs: hubs, radius: radius)
+  }
+
+  /// Journal days on a slow spiral above the clusters, one turn a month,
+  /// oldest first; each turn a little higher than the one before.
+  static func placeJournal(
+    _ days: [Int], of graph: GraphSnapshot, ring: Float, into positions: inout [SIMD3<Float>]
+  ) {
+    let sorted = days.sorted {
+      (graph.nodes[$0].journalDay ?? "") < (graph.nodes[$1].journalDay ?? "")
+    }
+    guard let first = sorted.first.map({ graph.nodes[$0].createdAt }) else { return }
+    let perTurn: Float = 30
+    for index in sorted {
+      let n = Float((graph.nodes[index].createdAt.timeIntervalSince(first) / 86_400).rounded())
+      let angle = n / perTurn * 2 * .pi
+      let radius = ring * 0.75 + 1
+      positions[index] = SIMD3(
+        cos(angle) * radius, ring * 0.9 + 1.5 + n / perTurn * 0.8, sin(angle) * radius)
+    }
   }
 
   /// `count` rounded up to the next step of a √2 ladder (1, 2, 3, 4, 6, 8,

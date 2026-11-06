@@ -149,6 +149,49 @@ extension AppDatabase {
       try db.execute(sql: "alter table project_context_items add column dismissed_at text")
     }
 
+    migrator.registerMigration("v4") { db in
+      // The journal: one row per local day, and the day's text as
+      // paragraphs. Claude only ever inserts paragraphs, so what the user
+      // wrote or edited is never rewritten by a later write from Claude.
+      try db.execute(
+        sql: """
+          create table journal_days (
+            day text primary key check (day glob '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'),
+            time_zone text not null,
+            created_at text not null,
+            updated_at text not null
+          );
+
+          create table journal_paragraphs (
+            id text primary key,
+            day text not null references journal_days (day) on delete cascade,
+            author text not null check (author in ('claude', 'user')),
+            text text not null,
+            edited_at text,
+            created_at text not null
+          );
+
+          create index journal_paragraphs_day on journal_paragraphs (day, created_at);
+
+          create virtual table journal_fts using fts5(
+            text, tokenize = 'unicode61 remove_diacritics 2'
+          );
+
+          create trigger journal_fts_insert after insert on journal_paragraphs begin
+            insert into journal_fts (rowid, text) values (
+              new.rowid, replace(replace(new.text, 'ё', 'е'), 'Ё', 'Е'));
+          end;
+          create trigger journal_fts_delete after delete on journal_paragraphs begin
+            delete from journal_fts where rowid = old.rowid;
+          end;
+          create trigger journal_fts_update after update of text on journal_paragraphs begin
+            delete from journal_fts where rowid = old.rowid;
+            insert into journal_fts (rowid, text) values (
+              new.rowid, replace(replace(new.text, 'ё', 'е'), 'Ё', 'Е'));
+          end;
+          """)
+    }
+
     return migrator
   }
 }
