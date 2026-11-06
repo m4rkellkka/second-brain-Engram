@@ -6,6 +6,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.1] - 2026-11-06
+
+### Fixed
+
+- The Brain stays smooth with 10,000 entries: about 55–60 fps instead of 22, also while the timeline plays.
+- No more light rectangles flickering under project labels over bright clusters.
+- Big clusters keep their color instead of burning white, and many projects no longer crowd into each other.
+- The search field no longer covers the "Your brain" header when the side panel is open.
+
+### Changed
+
+- `make demo-graph` takes `PROJECTS=` (up to 24) next to `COUNT=`, and always spreads the entries over one year.
+
 ## [0.12.0] - 2026-11-06
 
 ### Added
@@ -252,7 +265,8 @@ Engram is now a native macOS app. The Next.js + Supabase web app (0.1.0–0.5.0)
 - GitHub Actions CI: lint, format check, typecheck and build.
 - MIT license.
 
-[Unreleased]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.12.0...HEAD
+[Unreleased]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.12.1...HEAD
+[0.12.1]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.12.0...v0.12.1
 [0.12.0]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/m4rkellkka/second-brain-Engram/compare/v0.9.2...v0.10.0
